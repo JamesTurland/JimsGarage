@@ -1,7 +1,7 @@
 ![alt text](https://github.com/JamesTurland/JimsGarage/blob/main/Logo/Jim'sGarage-1(2).png?raw=true)
 
 Discord: https://discord.gg/qW5vEBekz5
-Twitter: "https://twitter.com/jimsgarage_"
+Twitter: (https://twitter.com/jimsgarage_)
 Reddit: https://www.reddit.com/user/Jims-Garage
 
 # JimsGarage
