@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+
+  rclone:
+    image: rclone/rclone
+    container_name: rclone_mount
+    security_opt:
+      - apparmor:unconfined
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/ubuntu/GoogleDrive_NAS_crypt #change this to the folder location you want to mount to (on your host)
+        target: /data
+        bind:
+          propagation: shared
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /home/ubuntu/docker/rclone/config:/config/rclone #rclone config location (i.e., the remote credentials)
+      - /home/ubuntu/docker/rclone/log:/log
+      - /home/ubuntu/docker/rclone/cache:/cache
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse #IMPORTANT need to install FUSE on the host first. This is used to mount the remote to the host
+    command: "mount NAME_OF_YOUR_REMOTE:/NAME_OF_FOLDER_TO_MOUNT /data --log-file /log/rclone.log --log-level ERROR --umask 002 --buffer-size 128M --checkers 20 --transfers 5 --vfs-read-ahead 1G --vfs-cache-mode writes --allow-other --allow-non-empty &"
