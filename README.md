@@ -4,5 +4,5 @@
 
 ![alt text](https://github.com/JamesTurland/JimsGarage/blob/main/Logo/Jim'sGarage-1(2).png?raw=true)
 
-# JimsGarage
+# Jim's Garage
 Here's a collection of Docker Compose and config files for use in my videos. Simply tweak to your environment and deploy!
