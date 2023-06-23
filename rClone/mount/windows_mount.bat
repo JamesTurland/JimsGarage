@@ -1,0 +1,1 @@
+rclone mount YOUR_REMOTE: G: --dir-cache-time 1440m --poll-interval 15s --fast-list --buffer-size 256M --vfs-cache-mode writes --vfs-read-ahead 256M --vfs-read-chunk-size-limit=off --vfs-read-chunk-size=128M --tpslimit 10
