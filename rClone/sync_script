@@ -1,0 +1,1 @@
+rclone rc sync/copy srcFS=FOLDER_ON_HOST:/ dstFs=REMOTE_NAME:REMOTE_FOLDER --rc-addr=:5572 --rc-user=user --rc-pass=rclone _async=true/sync_script
