@@ -1,0 +1,18 @@
+services:
+  tailscale:
+    container_name: tailscale
+    image: tailscale/tailscale:stable
+    hostname: headtailscale
+    volumes:
+      - /home/ubuntu/docker/tailscale/data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_EXTRA_ARGS=--login-server=https://headscale.jimsgarage.co.uk --advertise-exit-node --advertise-routes=192.168.0.0/16 --accept-dns=true
+      - TS_NO_LOGS_NO_SUPPORT=true
+     # - TS_AUTHKEY=e6f46b99f2ddsfsf3easdf125590e415db007 # generate this key inside your headscale server container  
+    restart: unless-stopped
