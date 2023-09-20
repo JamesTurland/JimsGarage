@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  tunnel:
+    container_name: cloudflared-tunnel
+    image: cloudflare/cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=YOUR_KEY_HERE
+    networks:
+      macvlan4: # change name to whatever you like
+         ipv4_address: 192.168.4.20 # change to your IP in your vLAN subnet
+
+networks:
+  macvlan4:
+    external: true

@@ -1,0 +1,96 @@
+cameras:
+  garden:
+    ffmpeg:
+      inputs:
+        - path: rtsp://cameraIP:554/s0
+          roles:
+            - detect
+            - rtmp
+    detect:
+      width: 1920 # <---- update for your camera's resolution
+      height: 1080 # <---- update for your camera's resolution
+      fps: 25
+  garage:
+    ffmpeg:
+      inputs:
+        - path: rtsp://cameraIP:554/s0
+          roles:
+            - detect
+            - rtmp
+    detect:
+      width: 1920 # <---- update for your camera's resolution
+      height: 1080 # <---- update for your camera's resolution
+      fps: 25
+    motion:
+      mask:
+        - 0,0,1920,0,1920,393,297,241,314,464,0,541
+
+# Optional: Database configuration
+database:
+  # The path to store the SQLite DB (default: shown below)
+  path: /media/frigate/frigate.db
+
+detectors:
+  coral1:
+    type: edgetpu
+    device: pci:0
+  coral2:
+    type: edgetpu
+    device: pci:1
+
+objects:
+  track:
+    - person
+    - dog
+    - cat
+    - bird
+
+snapshots:
+  enabled: True
+  timestamp: true
+  bounding_box: true
+  retain: 
+    default: 30
+mqtt:
+  host: 192.168.200.14
+
+ffmpeg:
+  #hwaccel_args:
+  #  - -hwaccel
+  #  - vaapi
+  #  - -hwaccel_device
+  #  - /dev/dri/renderD128
+  #  - -hwaccel_output_format
+  #  - yuv420p
+  output_args:
+     record: -f segment -segment_time 10 -segment_format mp4 -reset_timestamps 1 -strftime 1 -c:v copy -c:a aac
+
+record:
+  enabled: True
+  events:
+    pre_capture: 5
+    post_capture: 5
+    retain:
+      default: 30
+      mode: active_objects
+    objects:
+      - person
+      - bird
+      - cat
+      - dog
+
+birdseye:
+  # Optional: Enable birdseye view (default: shown below)
+  enabled: True
+  # Optional: Width of the output resolution (default: shown below)
+  width: 1280
+  # Optional: Height of the output resolution (default: shown below)
+  height: 720
+  # Optional: Encoding quality of the mpeg1 feed (default: shown below)
+  # 1 is the highest quality, and 31 is the lowest. Lower quality feeds utilize less CPU resources.
+  quality: 8
+  # Optional: Mode of the view. Available options are: objects, motion, and continuous
+  #   objects - cameras are included if they have had a tracked object within the last 30 seconds
+  #   motion - cameras are included if motion was detected in the last 30 seconds
+  #   continuous - all cameras are included always
+  mode: continuous

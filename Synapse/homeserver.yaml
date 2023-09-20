@@ -1,0 +1,110 @@
+# DO NOT USE THIS CONFIGURATION FILE FOR PRODUCTION
+# GENERATE YOUR OWN (SEE MY VIDEO)
+
+# Configuration file for Synapse.
+#
+# This is a YAML file: see [1] for a quick introduction. Note in particular
+# that *indentation is important*: all the elements of a list or dictionary
+# should have the same indentation.
+#
+# [1] https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
+#
+# For more information on how to configure Synapse, including a complete accounting of
+# each option, go to docs/usage/configuration/config_documentation.md or
+# https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html
+server_name: "matrix.yourdomain.com"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+database:
+ name: psycopg2
+ args:
+   user: synapse_user
+   password: xF2oDmvPLXhN8yivmI7PhPLozBl0ZgfQsjnd55yH
+   database: synapse
+   host: synapse-db
+   cp_min: 5
+   cp_max: 10
+log_config: "/data/matrix.yourdomain.com.log.config"
+media_store_path: /data/media_store
+registration_shared_secret: "YRGKetN~MIoXWrqJGTkLaY2.3n0#UDClRF1oteAEk7mWq=1f95" # DO NOT USE THIS
+report_stats: false
+macaroon_secret_key: "#stDom~z;7M_Fjd0o,Mtn7BFOdIUqb5~DUg4;ipSo+6xEzuV#i" # DO NOT USE THIS
+form_secret: ":ANf04Ysn5mh^1PdRHOXe3tT01NERDtBRYHMStkjUu.^wO@mUU" # DO NOT USE THIS
+signing_key_path: "/data/matrix.yourdomain.com.signing.key"
+trusted_key_servers:
+  - server_name: "matrix.org"
+enable_registration: true
+# users require an email to sign up - needed for password resets
+registrations_require_3pid:
+  - email
+enable_registration_captcha: true
+recaptcha_public_key: <recaptcha site key>
+recaptcha_private_key: <recaptcha private key>
+
+email:
+  # The hostname of the outgoing SMTP server to use. Defaults to 'localhost'.
+  #
+  smtp_host: smtp.gmail.com
+
+  # The port on the mail server for outgoing SMTP. Defaults to 25.
+  #
+  smtp_port: 587
+
+  # Username/password for authentication to the SMTP server. By default, no
+  # authentication is attempted.
+  #
+  smtp_user: "your_email"
+  smtp_pass: "your_smtp_password"
+
+  # Uncomment the following to require TLS transport security for SMTP.
+  # By default, Synapse will connect over plain text, and will then switch to
+  # TLS via STARTTLS *if the SMTP server supports it*. If this option is set,
+  # Synapse will refuse to connect unless the server supports STARTTLS.
+  #
+  require_transport_security: true
+
+  # notif_from defines the "From" address to use when sending emails.
+  # It must be set if email sending is enabled.
+  #
+  # The placeholder '%(app)s' will be replaced by the application name,
+  # which is normally 'app_name' (below), but may be overridden by the
+  # Matrix client application.
+  #
+  # Note that the placeholder must be written '%(app)s', including the
+  # trailing 's'.
+  #
+  notif_from: "Your Friendly %(app)s homeserver <noreply@yourdomain.com>"
+
+  # app_name defines the default value for '%(app)s' in notif_from and email
+  # subjects. It defaults to 'Matrix'.
+  #
+  app_name: YourHomeserver
+
+  # Uncomment the following to enable sending emails for messages that the user
+  # has missed. Disabled by default.
+  #
+  #enable_notifs: true
+
+  # Uncomment the following to disable automatic subscription to email
+  # notifications for new users. Enabled by default.
+  #
+  notif_for_new_users: false
+
+# allows people to change their email address
+enable_3pid_changes: true
+# allows searching of all users in directory
+user_directory.search_all_users: true
+# allow room access over federation
+matrix_synapse_allow_public_rooms_over_federation: true
+# enable federation on port 443
+serve_server_wellknown: true
+
+
+# vim:ft=yaml

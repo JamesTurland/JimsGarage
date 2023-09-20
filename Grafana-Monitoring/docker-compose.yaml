@@ -1,0 +1,109 @@
+version: "3"
+services:
+  loki:
+    container_name: loki
+    image: grafana/loki:main
+    networks:
+      - grafana-monitoring
+    volumes:
+      - /home/ubuntu/docker/grafana-monitoring/loki:/etc/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:main
+    networks:
+      - grafana-monitoring
+    volumes:
+      - /var/log:/var/log
+      - /home/ubuntu/docker/grafana-monitoring/promtail:/etc/promtail
+    ports:
+      - "1514:1514" # this is only needed if you are going to send syslogs
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:main-ubuntu
+    user: "0"
+    networks:
+      - grafana-monitoring
+      - proxy
+    volumes:
+    - /home/ubuntu/docker/grafana-monitoring/grafana:/var/lib/grafana
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.entrypoints=http"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.jimsgarage.co.uk`)"
+      - "traefik.http.routers.grafana.middlewares=default-whitelist@file"
+      - "traefik.http.middlewares.grafana-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.grafana.middlewares=grafana-https-redirect"
+      - "traefik.http.routers.grafana-secure.entrypoints=https"
+      - "traefik.http.routers.grafana-secure.rule=Host(`grafana.jimsgarage.co.uk`)"
+      - "traefik.http.routers.grafana-secure.tls=true"
+      - "traefik.http.routers.grafana-secure.service=grafana"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    restart: unless-stopped
+    ports:
+      - 8086:8086
+      - 8089:8089/udp
+    networks:
+      - grafana-monitoring
+    volumes:
+      - /home/ubuntu/docker/grafana-monitoring/influxdb:/var/lib/influxdb2
+  telegraf:
+    container_name: telegraf
+    restart: unless-stopped
+    user: telegraf:995 #you need to find the GID of Docker if not added to Sudo group
+    networks:
+      - grafana-monitoring
+    volumes:
+        - '/home/ubuntu/docker/grafana-monitoring/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
+        - '/:/hostfs:ro' # to monitor docker-vm
+        - '/var/run/docker.sock:/var/run/docker.sock' # to monitor docker containers
+        - '/home/ubuntu/docker/grafana-monitoring/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
+    environment:
+        - HOST_ETC=/hostfs/etc
+        - HOST_PROC=/hostfs/proc
+        - HOST_SYS=/hostfs/sys
+        - HOST_VAR=/hostfs/var
+        - HOST_RUN=/hostfs/run
+        - HOST_MOUNT_PREFIX=/hostfs
+    image: telegraf:latest
+  graphite:
+    image: graphiteapp/graphite-statsd
+    container_name: graphite
+    restart: unless-stopped
+    ports:
+      - 8050:80 # nginx
+      - 2003-2004 # carbon receiver - plaintext & pickle
+      - 2023-2024 # carbon aggregator - plaintext & pickle
+      - 8125:8125/udp # statsd
+      - 8126:8126 # statsd admin
+    volumes:
+      - /home/ubuntu/docker/grafana-monitoring/graphite/configs:/opt/graphite/conf
+      - /home/ubuntu/docker/grafana-monitoring/graphite/data:/opt/graphite/storage
+      - /home/ubuntu/docker/grafana-monitoring/graphite/statsd_config:/opt/statsd/config
+    networks:
+      - grafana-monitoring
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - 9090:9090
+    volumes:
+      - /home/ubuntu/docker/grafana-monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - grafana-monitoring
+
+networks:
+  grafana-monitoring:
+  proxy:
+    external: true

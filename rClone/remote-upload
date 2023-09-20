@@ -1,0 +1,4 @@
+#this script will initiate a remote upload using the docker container. Example use case: you can run this on a windows machine that will send a command to the docker container to tell it to perform a backup.
+#you can track the progress of the operation using the rclone dashboard
+#the exluderule will allow you to skip certain folders (example below)
+rclone rc sync/copy srcFs="YOUR_SOURCE:/data" _filter={\"ExcludeRule\":[\"rClone/**\",\"Frigate/**\",\"dump/**\",\"ISOConvert/**\",\"GooglePhotosBackup/**\"]} dstFs="YOUR_REMOTE:FOLDER" --rc-addr=https://IP-OR-DNS-OF-RCLONE --rc-user=james --rc-pass=rclone _async=true -vv --checksum --transfers=1 --checkers=4 --contimeout=60s --timeout=300s --retries=3 --low-level-retries=10 --stats=1s --stats-file-name-length=0 --fast-list

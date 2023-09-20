@@ -1,0 +1,21 @@
+version: '3.9'
+services:
+  headscale:
+    container_name: headscale
+    volumes:
+        - /home/ubuntu/docker/headscale/config:/etc/headscale/
+        - /home/ubuntu/docker/headscale/keys:/var/lib/headscale/
+    ports:
+        - 8080:8080
+        - 9090:9090
+    image: headscale/headscale:latest
+    command: headscale serve
+    restart: unless-stopped
+
+  headscale-ui:
+    image: ghcr.io/gurucomputing/headscale-ui:latest
+    pull_policy: always
+    container_name: headscale-ui
+    restart: unless-stopped
+    ports:
+        - 9999:80

@@ -1,0 +1,36 @@
+version: '3'
+services:
+  rclone:
+    image: rclone/rclone:latest
+    container_name: rclone
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    command: rcd --rc-web-gui --rc-addr 0.0.0.0:5572 --rc-web-fetch-url=https://api.github.com/repos/rclone/rclone-webui-react/releases/latest --rc-web-gui-update --rc-user user --rc-pass rclone -vv --checksum --transfers=4 --checkers=4 --contimeout=60s --timeout=300s --retries=3 --low-level-retries=10 --stats=1s --stats-file-name-length=0
+    #ports:
+    #  - "5572:5572" add this port if you're not using a proxy
+    volumes: #be sure to amend the below to your user and directories
+      - /home/ubuntu/docker/rclone/config:/config/rclone #location of your rclone config file (i.e., where the remote and secrets are stored)
+      - /home/ubuntu/docker/rclone-dashboard/sync_script:/sync_script #script to allow remote execution of backups (e.g., rclone copy --checksum --verbose --transfers 1 --checkers 4 --contimeout 60s --timeout 300s --retries 3 --low-level-retries 10 --stats 1s /YOUR_FOLDER YOUR_REMOTE:REMOTE_FOLDER/sync_script)
+      - /home/ubuntu/truenas:/data #this is my truenas SMB share - change to wherever you store the data you wish to upload
+    environment:
+      - PHP_TZ=Europe/London
+    networks:
+      proxy: #remove the proxy network if you're not using traefik
+    labels: #remove the labels section if you're not using traefik
+      - "traefik.enable=true"
+      - "traefik.http.routers.rclone-dashboard.entrypoints=http"
+      - "traefik.http.routers.rclone-dashboard.rule=Host(`rclone-dashboard.your-domain.co.uk`)"
+      - "traefik.http.routers.rclone-dashboard.middlewares=default-whitelist@file"
+      - "traefik.http.middlewares.rclone-dashboard-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.rclone-dashboard.middlewares=rclone-dashboard-https-redirect"
+      - "traefik.http.routers.rclone-dashboard-secure.entrypoints=https"
+      - "traefik.http.routers.rclone-dashboard-secure.rule=Host(`rclone-dashboard.your-domain.co.uk`)"
+      - "traefik.http.routers.rclone-dashboard-secure.tls=true"
+      - "traefik.http.routers.rclone-dashboard-secure.service=rclone-dashboard"
+      - "traefik.http.services.rclone-dashboard.loadbalancer.server.port=5572"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true

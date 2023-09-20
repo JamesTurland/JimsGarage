@@ -1,0 +1,10 @@
+http:
+  middlewares:    
+    crowdsec-bouncer:
+      forwardauth:
+        address: http://bouncer-traefik:8080/api/v1/forwardAuth
+        trustForwardHeader: true
+    ip-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "1.2.3.4" # Add the IPs or networks you want to be able to access

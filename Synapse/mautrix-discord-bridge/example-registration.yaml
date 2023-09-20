@@ -1,0 +1,14 @@
+id: discord
+url: http://<IP of DiscordBot>:29334
+as_token: vpVJTrHGB6ZyVScf2SD4RzRLHcBeEM6fe9UhuQtsWd9JyFDmvN7mrqQMHBRn
+hs_token: VqENuUGBb2NjChatnA7e36CZN7esjpL57mhvmKREQAH7Pj2ux6H835UXBDUC
+sender_localpart: zHypwcFgaEKamUdbGyBgvibKpW
+rate_limited: false
+namespaces:
+    users:
+        - regex: ^@discordbot:matrix\.jimsgarage\.co\.uk$
+          exclusive: true
+        - regex: ^@discord_.*:matrix\.jimsgarage\.co\.uk$
+          exclusive: true
+de.sorunome.msc2409.push_ephemeral: true
+push_ephemeral: true

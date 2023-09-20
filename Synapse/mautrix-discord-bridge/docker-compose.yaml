@@ -1,0 +1,51 @@
+version: "3.7"
+
+services:
+  mautrix-discord:
+    container_name: mautrix-discord
+    image: dock.mau.dev/mautrix/discord:latest
+    restart: unless-stopped
+    volumes:
+    - /home/ubuntu/docker/mautrix-discord:/data
+
+    # If you put the service above in the same docker-compose as the homeserver,
+    # ignore the parts below. Otherwise, see below for configuring networking.
+
+    # If synapse is running outside of docker, you'll need to expose the port.
+    # Note that in most cases you should either run everything inside docker
+    # or everything outside docker, rather than mixing docker things with
+    # non-docker things.
+    ports:
+      - "29334:29334"
+    # You'll also probably want this so the bridge can reach Synapse directly
+    # using something like `http://host.docker.internal:8008` as the address:
+    #extra_hosts:
+    #- "host.docker.internal:host-gateway"
+
+    # If synapse is in a different network, then add this container to that network.
+    networks:
+      mautrix-discord:
+
+  mautrix-discord-db:
+    image: docker.io/postgres:15-alpine
+    container_name: mautrix-discord-db
+    restart: always
+    environment:
+      - POSTGRES_USER=mautrix-discord
+      # change this to something unique (you will need it for the generated config file)
+      - POSTGRES_PASSWORD=bcH8mwBQKD225uZ99d2ReFDQRoDSmVVXASVXaMFMKj5FuNNp44bN7SdzsqVZ
+      - POSTGRES_DB=mautrix-discord
+      # ensure the database gets created correctly
+      # https://github.com/matrix-org/synapse/blob/master/docs/postgres.md#set-up-database
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      # You may either store all the files in a local folder
+      - /home/ubuntu/docker/mautrix-discord-db/schemas:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      mautrix-discord:
+
+networks:
+  mautrix-discord:
+

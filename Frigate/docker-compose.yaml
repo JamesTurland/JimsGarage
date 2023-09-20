@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  frigate:
+    container_name: frigate
+    # privileged: true # this may not be necessary for all setups
+    restart: unless-stopped
+    image: blakeblackshear/frigate:stable
+    devices:
+      #- /dev/bus/usb:/dev/bus/usb
+      - /dev/apex_0:/dev/apex_0
+      - /dev/apex_1:/dev/apex_1
+      #- /dev/dri/renderD128:/dev/dri/renderD128 # for intel hwaccel, needs to be updated for your hardware
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /home/ubuntu/docker/frigate/config.yml:/config/config.yml:ro
+      - /home/ubuntu/freenas/Frigate/media/clips:/media/frigate/clips
+      - /home/ubuntu/freenas/Frigate/media/recordings:/media/frigate/recordings
+      - /home/ubuntu/docker/frigate/database:/media/frigate
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 2000000000
+    ports:
+      - "5000:5000"
+      - "1935:1935" # RTMP feeds (deprecated)
+      - "8554:8554" # RTSP feeds
+    environment:
+      FRIGATE_RTSP_PASSWORD: "password"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frigate.entrypoints=http"
+      - "traefik.http.routers.frigate.rule=Host(`frigate.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.frigate-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.frigate.middlewares=frigate-https-redirect"
+      - "traefik.http.routers.frigate-secure.entrypoints=https"
+      - "traefik.http.routers.frigate-secure.rule=Host(`frigate.jimsgarage.co.uk`)"
+      - "traefik.http.routers.frigate-secure.tls=true"
+      - "traefik.http.routers.frigate-secure.service=frigate"
+      - "traefik.http.services.frigate.loadbalancer.server.port=5000"
+      - "traefik.docker.network=proxy"
+
+proxy:
+  external: true

@@ -1,0 +1,75 @@
+version: '3'
+services:
+  synapse:
+    container_name: synapse
+    image: docker.io/matrixdotorg/synapse:latest
+    # Since synapse does not retry to connect to the database, restart upon
+    # failure
+    restart: unless-stopped
+    # See the readme for a full documentation of the environment settings
+    environment:
+    # config file location - be sure to create one first!
+    # https://github.com/matrix-org/synapse/tree/develop/docker#generating-a-configuration-file
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+      - UID=1000
+      - GID=1000
+    volumes:
+      # You may either store all the files in a local folder
+      - /home/ubuntu/docker/synapse:/data
+      # .. or you may split this between different storage points
+      # - ./files:/data
+      # - /path/to/ssd:/data/uploads
+      # - /path/to/large_hdd:/data/media
+    depends_on:
+    # We're going to use an external database as it's more performant for multiple
+    # users
+      - synapse-db
+    networks:
+        synapse:
+        proxy:
+    # Uncomment if not using a proxy. In order to expose Synapse, remove one of the following, 
+    # you might for instance expose the TLS port directly:
+    #ports:
+    # - 8448:8448/tcp
+    # - 8008:8008/tcp
+
+    # ... or use a reverse proxy, here is an example for traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synapse.entrypoints=http"
+      - "traefik.http.routers.synapse.rule=Host(`matrix.yourdomain.com`)"
+      - "traefik.http.middlewares.synapse-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.synapse.middlewares=synapse-https-redirect"
+      - "traefik.http.routers.synapse-secure.entrypoints=https"
+      - "traefik.http.routers.synapse-secure.rule=Host(`matrix.yourdomain.com`)"
+      - "traefik.http.routers.synapse-secure.tls=true"
+      - "traefik.http.routers.synapse-secure.service=synapse"
+      - "traefik.http.services.synapse.loadbalancer.server.port=8008"
+      - "traefik.docker.network=proxy"
+        
+  synapse-db:
+    image: docker.io/postgres:15-alpine
+    container_name: synapse-db
+    restart: unless-stopped
+    # Change password below, of course!
+    environment:
+      - POSTGRES_USER=synapse_user
+      - POSTGRES_PASSWORD=xF2oDmvPLXhN8yivmI7PhPLozBl0ZgfQsjnd55yH # CHANGE ME!
+      - POSTGRES_DB=synapse
+      # ensure the database gets created correctly
+      # https://github.com/matrix-org/synapse/blob/master/docs/postgres.md#set-up-database
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      # You may store the database tables in a local folder..
+      - /home/ubuntu/docker/synapse-db/schemas:/var/lib/postgresql/data
+      # .. or store them on some high performance storage for better results
+      # - /path/to/ssd/storage:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+       synapse:
+
+networks:
+  synapse:
+  proxy:
+    external: true

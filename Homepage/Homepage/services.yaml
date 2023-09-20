@@ -1,0 +1,41 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/en/configs/services
+
+- My First Group:
+    - My First Service:
+        href: http://localhost/
+        description: Homepage is awesome
+
+    - Traefik:
+        icon: traefik.png
+        href: "http://traefik.jimsgarage.co.uk"
+        description: Reverse Proxy
+        server: my-docker # The docker server that was configured
+        container: traefik # The name of the container you'd like to connect
+        widget:
+          type: traefik
+          url: https://traefik.jimsgarage.co.uk
+          username: admin
+          password: gT8ni3iX6QkKreWfAdYKe4xqVsaMRUQ4GG7xn59Q
+
+    - PiHole:
+        icon: pi-hole.png
+        href: "http://pihole.jimsgarage.co.uk"
+        description: DNS Ad Blocker
+        server: my-docker # The docker server that was configured
+        container: pihole # The name of the container you'd like to connect
+        widget:
+          type: pihole
+          url: http://192.168.8.2
+          key: 73T8oBs9MFKLVAC3mAs2KQbWSsqA7oe2PN9r9H4TQWg2TXNAdq4ZPzvy8oEv
+
+- My Second Group:
+    - My Second Service:
+        href: http://localhost/
+        description: Homepage is the best
+
+- My Third Group:
+    - My Third Service:
+        href: http://localhost/
+        description: Homepage is 😎
