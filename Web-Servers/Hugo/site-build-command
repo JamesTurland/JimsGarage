@@ -1,0 +1,1 @@
+sudo docker run --rm -v $(pwd):/src klakegg/hugo:0.101.0-ext-alpine new site MyWebsite --format yaml
