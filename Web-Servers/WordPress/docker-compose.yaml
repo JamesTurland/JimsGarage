@@ -1,0 +1,83 @@
+version: '3'
+
+services:
+  wp:
+    image: wordpress:latest # https://hub.docker.com/_/wordpress/
+    volumes:
+      - /home/ubuntu/docker/wordpress/config/php.conf.ini:/usr/local/etc/php/conf.d/conf.ini
+      - /home/ubuntu/docker/wordpress/wp-app:/var/www/html # Full wordpress project
+      #- ./plugin-name/trunk/:/var/www/html/wp-content/plugins/plugin-name # Plugin development
+      #- ./theme-name/trunk/:/var/www/html/wp-content/themes/theme-name # Theme development
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: "${DB_NAME}"
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: "${DB_ROOT_PASSWORD}"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      proxy:
+      wordpress:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wordpress.entrypoints=http"
+      - "traefik.http.routers.wordpress.rule=Host(`wordpress.your-domain.co.uk`)"
+      - "traefik.http.middlewares.wordpress-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.wordpress.middlewares=wordpress-https-redirect"
+      - "traefik.http.routers.wordpress-secure.entrypoints=https"
+      - "traefik.http.routers.wordpress-secure.rule=Host(`wordpress.your-domain.co.uk`)"
+      - "traefik.http.routers.wordpress-secure.tls=true"
+      - "traefik.http.routers.wordpress-secure.service=wordpress"
+      - "traefik.http.services.wordpress.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      # https://docs.phpmyadmin.net/en/latest/setup.html#docker-environment-variables
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      UPLOAD_LIMIT: 50M
+    links:
+      - db:db
+    networks:
+      proxy:
+      wordpress:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pma.entrypoints=http"
+      - "traefik.http.routers.pma.rule=Host(`pma.your-domain.co.uk`)"
+      - "traefik.http.middlewares.pma-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pma.middlewares=pma-https-redirect"
+      - "traefik.http.routers.pma-secure.entrypoints=https"
+      - "traefik.http.routers.pma-secure.rule=Host(`pma.your-domain.co.uk`)"
+      - "traefik.http.routers.pma-secure.tls=true"
+      - "traefik.http.routers.pma-secure.service=pma"
+      - "traefik.http.services.pma.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+  db:
+    image: mysql:latest # https://hub.docker.com/_/mysql/ - or mariadb https://hub.docker.com/_/mariadb
+    ports:
+      - ${IP}:3306:3306 # change ip if required
+    command: [
+        '--default_authentication_plugin=mysql_native_password',
+        '--character-set-server=utf8mb4',
+        '--collation-server=utf8mb4_unicode_ci'
+    ]
+    volumes:
+      - /home/ubuntu/docker/wordpress/wp-data:/docker-entrypoint-initdb.d
+      - /home/ubuntu/docker/wordpress/db_data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+    networks:
+      wordpress:
+
+networks:
+  wordpress:
+  proxy:
+    external: true

@@ -1,0 +1,29 @@
+## MAKE SURE YOU RUN THE SITE BUILD COMMAND FIRST, BEFORE DEPLOYING THIS CONTAINER ##
+## YOU NEED TO MOUNT THE SITE DURING THE HUGO DEPLOYMENT ##
+
+version: '3.8'
+services:
+  server:
+    image: klakegg/hugo:0.101.0
+    container_name: hugo
+    command: server
+    volumes:
+      - "/home/ubuntu/docker/hugo/your-website:/src" #mount your site here after you've created a new site!
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hugo.entrypoints=http"
+      - "traefik.http.routers.hugo.rule=Host(`mywebsite.yourdomain.com`)"
+      - "traefik.http.middlewares.hugo-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.hugo.middlewares=hugo-https-redirect"
+      - "traefik.http.routers.hugo-secure.entrypoints=https"
+      - "traefik.http.routers.hugo-secure.rule=Host(`mywebsite.yourdomain.com`)"
+      - "traefik.http.routers.hugo-secure.tls=true"
+      - "traefik.http.routers.hugo-secure.service=hugo"
+      - "traefik.http.services.hugo.loadbalancer.server.port=1313"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
