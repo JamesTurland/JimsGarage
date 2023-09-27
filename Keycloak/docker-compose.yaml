@@ -1,0 +1,51 @@
+version: '3'
+services:
+  postgresql:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=keycloak
+      - POSTGRES_DB=keycloak
+      - POSTGRES_PASSWORD=SUPERsecret
+    volumes:
+      - '/home/ubuntu/docker/keycloak/postgresql_data:/var/lib/postgresql/data'
+    networks:
+      keycloak:
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.3
+    restart: always
+    command: start
+    depends_on:
+      - postgresql
+    environment:
+      - KC_PROXY_ADDRESS_FORWARDING=true
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME=keycloak.jimsgarage.co.uk
+      - KC_PROXY=edge
+      - KC_HTTP_ENABLED=true
+      - DB=keycloak
+      - DB_URL='jdbc:postgresql://postgres:5432/postgresql?ssl=allow'
+      - DB_USERNAME=keycloak
+      - DB_PASSWORD=SUPERsecret
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=password
+    networks:
+      proxy:
+      keycloak:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.entrypoints=http"
+      - "traefik.http.routers.keycloak.rule=Host(`keycloak.yourdomain.com`)"
+      - "traefik.http.middlewares.keycloak-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-https-redirect"
+      - "traefik.http.routers.keycloak-secure.entrypoints=https"
+      - "traefik.http.routers.keycloak-secure.rule=Host(`keycloak.yourdomain.com`)"
+      - "traefik.http.routers.keycloak-secure.tls=true"
+      - "traefik.http.routers.keycloak-secure.service=keycloak"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
+  keycloak:
