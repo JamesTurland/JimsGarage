@@ -1,0 +1,27 @@
+version: '2.1'
+services:
+  trilium:
+    image: zadam/trilium
+    restart: always
+    environment:
+      - TRILIUM_DATA_DIR=/home/node/trilium-data
+    volumes:
+      - /home/ubuntu/docker/trilium:/home/node/trilium-data
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trilium.entrypoints=http"
+      - "traefik.http.routers.trilium.rule=Host(`trilium.yourdomain.com`)"
+      - "traefik.http.middlewares.trilium-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.trilium.middlewares=trilium-https-redirect"
+      - "traefik.http.routers.trilium-secure.entrypoints=https"
+      - "traefik.http.routers.trilium-secure.rule=Host(`trilium.yourdomain.com`)"
+      - "traefik.http.routers.trilium-secure.tls=true"
+      - "traefik.http.routers.trilium-secure.service=trilium"
+      - "traefik.http.services.trilium.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
