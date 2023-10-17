@@ -139,7 +139,7 @@ sudo docker run --network host --rm ghcr.io/kube-vip/kube-vip:$KVVERSION manifes
     --leaderElection | tee $HOME/kube-vip.yaml
 
 # Step 4: Copy kube-vip.yaml to master1
-scp -i ~/.ssh/id_rsa kube-vip.yaml $user@$master1:~/kube-vip.yaml
+scp -i ~/.ssh/id_rsa ~/kube-vip.yaml $user@$master1:~/kube-vip.yaml
 
 
 # Step 5: Connect to Master1 and move kube-vip.yaml
