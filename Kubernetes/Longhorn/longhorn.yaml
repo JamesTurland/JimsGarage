@@ -769,9 +769,9 @@ spec:
 #        operator: "Equal"
 #        value: "value"
 #        effect: "NoSchedule"
-       nodeSelector:
-         longhorn: "true"
-         longhorn: "true"
+#      nodeSelector:
+#        label-key1: "label-value1"
+#        label-key2: "label-value2"
       serviceAccountName: longhorn-service-account
   updateStrategy:
     rollingUpdate:
@@ -831,9 +831,9 @@ spec:
 #        operator: "Equal"
 #        value: "value"
 #        effect: "NoSchedule"
-       nodeSelector:
-         longhorn: "true"
-         longhorn: "true"
+#      nodeSelector:
+#        label-key1: "label-value1"
+#        label-key2: "label-value2"
 ---
 kind: Service
 apiVersion: v1
@@ -929,9 +929,9 @@ spec:
 #        operator: "Equal"
 #        value: "value"
 #        effect: "NoSchedule"
-       nodeSelector:
-         longhorn: "true"
-         longhorn: "true"
+#      nodeSelector:
+#        label-key1: "label-value1"
+#        label-key2: "label-value2"
       serviceAccountName: longhorn-service-account
       securityContext:
         runAsUser: 0
