@@ -45,7 +45,7 @@ sudo timedatectl set-ntp on
 # Step 1: Add new longhorn nodes to cluster (note: label added)
 for newnode in "${storage[@]}"; do
   k3sup join \
-    --ip $newagent \
+    --ip $newnode \
     --user $user \
     --sudo \
     --k3s-channel stable \
@@ -56,7 +56,7 @@ for newnode in "${storage[@]}"; do
 done
 
 # Step 2: Install Longhorn (using modified Official to pin to Longhorn Nodes)
-kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
+kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn-update.yaml
 kubectl get pods \
 --namespace longhorn-system \
 --watch
@@ -65,7 +65,6 @@ kubectl get pods \
 kubectl expose deployment longhorn-ui --name=longhorn-lb --port=80 --type=LoadBalancer -n longhorn-system
 
 kubectl get nodes
-kubectl get svc
-kubectl get pods --all-namespaces -o wide
+kubectl get svc -n longhorn-system
 
-echo -e " \033[32;5mHappy Kubing! Access Nginx at EXTERNAL-IP above\033[0m"
+echo -e " \033[32;5mHappy Kubing! Access Longhorn at EXTERNAL-IP above\033[0m"
