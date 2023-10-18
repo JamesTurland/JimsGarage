@@ -61,10 +61,9 @@ kubectl get pods \
 --namespace longhorn-system \
 --watch
 
-# Step 3: Expose UI
-kubectl expose deployment longhorn-ui --name=longhorn-lb --port=80 --type=LoadBalancer -n longhorn-system
+# Step 3: Print out confirmation
 
 kubectl get nodes
 kubectl get svc -n longhorn-system
 
-echo -e " \033[32;5mHappy Kubing! Access Longhorn at EXTERNAL-IP above\033[0m"
+echo -e " \033[32;5mHappy Kubing! Access Longhorn through Rancher UI\033[0m"
