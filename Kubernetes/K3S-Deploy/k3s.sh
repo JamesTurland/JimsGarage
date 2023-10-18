@@ -37,7 +37,7 @@ user=ubuntu
 interface=eth0
 
 # Set the virtual IP address (VIP)
-vip=192.168.3.50
+vip=192.168.1.50
 
 # Array of master nodes
 masters=($master2 $master3)
@@ -52,7 +52,10 @@ all=($master1 $master2 $master3 $worker1 $worker2)
 allnomaster1=($master2 $master3 $worker1 $worker2)
 
 #Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
+lbrange=192.168.1.61-192.168.1.79
+
+#ssh certificate name variable
+certName=id_rsa_pm
 
 #############################################
 #            DO NOT EDIT BELOW              #
@@ -62,8 +65,9 @@ sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{id_rsa,id_rsa.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/id_rsa /home/$user/.ssh/id_rsa.pub
+cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
+chmod 600 /home/$user/.ssh/$certName 
+chmod 644 /home/$user/.ssh/$certName.pub
 
 # Install k3sup to local machine if not already present
 if ! command -v k3sup version &> /dev/null
@@ -101,7 +105,7 @@ echo "StrictHostKeyChecking no" > ~/.ssh/config
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
-  ssh-copy-id ubuntu@$node
+  ssh-copy-id $user@$node
 done
 
 # Step 1: Bootstrap First k3s Node
@@ -116,7 +120,7 @@ k3sup install \
   --merge \
   --sudo \
   --local-path $HOME/.kube/config \
-  --ssh-key $HOME/.ssh/id_rsa \
+  --ssh-key $HOME/.ssh/$certName \
   --context k3s-ha
 echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 
@@ -139,12 +143,12 @@ sudo docker run --network host --rm ghcr.io/kube-vip/kube-vip:$KVVERSION manifes
     --leaderElection | tee $HOME/kube-vip.yaml
 
 # Step 4: Copy kube-vip.yaml to master1
-scp -i ~/.ssh/id_rsa $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
+scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
 
 
 # Step 5: Connect to Master1 and move kube-vip.yaml
 
-ssh $user@$master1 -i ~/.ssh/id_rsa <<- EOF
+ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 EOF
@@ -158,7 +162,7 @@ for newnode in "${masters[@]}"; do
     --k3s-channel stable \
     --server \
     --server-ip $master1 \
-    --ssh-key $HOME/.ssh/id_rsa \
+    --ssh-key $HOME/.ssh/$certName \
     --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode" \
     --server-user $user
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
@@ -171,7 +175,7 @@ for newagent in "${workers[@]}"; do
     --sudo \
     --k3s-channel stable \
     --server-ip $master1 \
-    --ssh-key $HOME/.ssh/id_rsa
+    --ssh-key $HOME/.ssh/$certName
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
@@ -187,11 +191,8 @@ kubectl expose deployment nginx-1 --port=80 --type=LoadBalancer -n default
 
 echo -e " \033[32;5mWaiting 20s for K3S to sync and LoadBalancer to come online\033[0m"
 
-secs=20
-while [ $secs -gt 0 ]; do
-   echo -ne "$secs\033[0K\r"
+while [[ $(kubectl get pods -l app=nginx -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
    sleep 1
-   : $((secs--))
 done
 
 kubectl get nodes
