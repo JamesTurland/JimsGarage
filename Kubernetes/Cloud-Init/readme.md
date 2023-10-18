@@ -1,4 +1,5 @@
 1. Download the ISO using the GUI
+2. Create the VM via CLI
 ```
 qm create 5000 --memory 2048 --core 2 --name ubuntu-cloud --net0 virtio,bridge=vmbr0
 cd var/lib/vz/template/iso/
