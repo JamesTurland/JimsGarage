@@ -567,7 +567,7 @@ data:
     default-longhorn-static-storage-class:
     backupstore-poll-interval:
     taint-toleration:
-    system-managed-components-node-selector:
+    system-managed-components-node-selector: longhorn=true
     priority-class:
     auto-salvage:
     auto-delete-pod-when-volume-detached-unexpectedly:
