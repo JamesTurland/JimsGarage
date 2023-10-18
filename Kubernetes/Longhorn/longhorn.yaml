@@ -4285,7 +4285,7 @@ spec:
           mountPath: /var/config/nginx/
         - name: var-run
           mountPath: /var/run/
-       ports:
+        ports:
         - containerPort: 8000
           name: http
         env:
