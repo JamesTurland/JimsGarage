@@ -8,7 +8,6 @@ chmod 700 get_helm.sh
 ```
 helm repo add rancher-alpha https://releases.rancher.com/server-charts/alpha
 kubectl create namespace cattle-system
-cert-manager
 ```
 
 # Install Cert-Manager
