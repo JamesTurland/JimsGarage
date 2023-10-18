@@ -9,6 +9,6 @@ qm set 5000 --ide2 nvme:cloudinit
 qm set 5000 --boot c --bootdisk scsi0
 qm set 5000 --serial0 socket --vga serial0
 ```
-1. Expand the VM disk size to a suitable size
-1. Create the Cloud-Init template 
-1. Deploy new VMs by clonding the template (full clone)
+3. Expand the VM disk size to a suitable size
+4. Create the Cloud-Init template 
+5. Deploy new VMs by clonding the template (full clone)
