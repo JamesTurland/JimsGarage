@@ -4147,6 +4147,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        nodeSelector:
+          longhorn: "true"
       volumes:
       - name: dev
         hostPath:
@@ -4230,6 +4232,8 @@ spec:
             value: "longhornio/csi-snapshotter:v6.2.1"
           - name: CSI_LIVENESS_PROBE_IMAGE
             value: "longhornio/livenessprobe:v2.9.0"
+          nodeSelector:
+            longhorn: "true"
       serviceAccountName: longhorn-service-account
       securityContext:
         runAsUser: 0
@@ -4281,7 +4285,7 @@ spec:
           mountPath: /var/config/nginx/
         - name: var-run
           mountPath: /var/run/
-        ports:
+       ports:
         - containerPort: 8000
           name: http
         env:
@@ -4289,6 +4293,8 @@ spec:
             value: "http://longhorn-backend:9500"
           - name: LONGHORN_UI_PORT
             value: "8000"
+        nodeSelector:
+          longhorn: "true"
       volumes:
       - emptyDir: {}
         name: nginx-cache
