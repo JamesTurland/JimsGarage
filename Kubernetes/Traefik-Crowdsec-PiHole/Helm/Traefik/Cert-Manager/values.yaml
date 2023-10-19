@@ -1,0 +1,10 @@
+replicaCount: 3 # recommend 3 so there's 1 on each Masternode
+podDnsPolicy: None
+# Needed to query certificate with DNS resolver
+podDnsConfig:
+  nameservers:
+    - "1.1.1.1"
+    - "9.9.9.9"
+extraArgs:
+  - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
+  - --dns01-recursive-nameservers-only
