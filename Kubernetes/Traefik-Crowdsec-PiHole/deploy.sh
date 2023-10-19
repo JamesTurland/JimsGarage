@@ -18,16 +18,24 @@ echo -e " \033[32;2m                                                           \
 # Script created from Official Documentation available at: https://cert-manager.io/docs/tutorials/acme/nginx-ingress/
 # and https://github.com/traefik/traefik-helm-chart
 
-# Step 0: Clone repository, move files to /Helm/Traefik
-sudo apt install unzip -y
-mkdir jimsgarage
-mkdir Helm
-mkdir Manifests
-curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
-unzip master.zip -d ~/jimsgarage
-cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-Crowdsec-PiHole/* ~/
-rm master.zip
-rm -r ~/jimsgarage
+# Step 0: Clone repository
+if ! command -v cd ~/Helm/Traefik &> /dev/null
+then
+    sudo apt install unzip -y
+    mkdir jimsgarage
+    mkdir Helm
+    mkdir Manifests
+    curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
+    unzip master.zip -d ~/jimsgarage
+    cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-Crowdsec-PiHole/* ~/
+    rm master.zip
+    rm -r ~/jimsgarage
+    echo -e " \033[32;5mRepo cloned - EDIT FILES!!!\033[0m"
+    exit
+else
+    echo -e " \033[32;5mRepo already exists, continuing...\033[0m"
+fi
+
 
 # Step 1: Check dependencies
 # Helm
@@ -65,16 +73,16 @@ kubectl get svc -n traefik
 kubectl get pods -n traefik
 
 # Step 6: Apply Middleware
-kubectl apply -f ~/Helm/Traefik/default-headers.yaml
+kubectl apply -f default-headers.yaml
 
 # Step 7: Create Secret for Traefik Dashboard
-kubectl apply -f ~/Helm/Traefik/Dashboard/secret-dashboard.yaml
+kubectl apply -f secret-dashboard.yaml
 
-# Step 8: Apply Middleware to Dashboard
-kubectl apply -f ~/Helm/Traefik/Dashboard/middleware.yaml
+# Step 8: Apply Middleware
+kubectl apply -f middleware.yaml
 
-# Step 9: Apply Ingress to Dashboard Service
-kubectl apply -f ~/Helm/Traefik/Dashboard/ingress.yaml
+# Step 9: Apply Ingress to Access Service
+kubectl apply -f ingress.yaml
 
 # Step 10: Install Cert-Manager (should already have this with Rancher deployment)
 # Check if we already have it by querying namespace
@@ -94,10 +102,10 @@ else
 fi
 
 # Step 11: Apply secret for certificate (Cloudflare)
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/secret-cf-token.yaml
+kubectl apply -f secret-cf-token.yaml
 
 # Step 12: Apply production certificate issuer (technically you should use the staging to test as per documentation)
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
+kubectl apply -f letsencrypt-production.yaml
 
 # Step 13: Apply production certificate
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Certificates/Production/your-domain-com.yaml
+kubectl apply -f your-domain-com.yaml
