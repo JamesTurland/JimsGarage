@@ -18,7 +18,7 @@ echo -e " \033[32;2m                                                           \
 # Script created from Official Documentation available at: https://cert-manager.io/docs/tutorials/acme/nginx-ingress/
 # and https://github.com/traefik/traefik-helm-chart
 
-# Step 0: Clone repository
+# Step 0: Clone repository, move files to /Helm/Traefik
 sudo apt install unzip -y
 mkdir jimsgarage
 mkdir Helm
