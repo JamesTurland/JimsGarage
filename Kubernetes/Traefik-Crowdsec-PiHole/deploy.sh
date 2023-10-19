@@ -18,18 +18,16 @@ echo -e " \033[32;2m                                                           \
 # Script created from Official Documentation available at: https://cert-manager.io/docs/tutorials/acme/nginx-ingress/
 # and https://github.com/traefik/traefik-helm-chart
 
-#############################################
-# YOU SHOULD ONLY NEED TO EDIT THIS SECTION #
-#############################################
-
-# Install PiHole?
-pihole=yes
-
-#############################################
-#            DO NOT EDIT BELOW              #
-#############################################
-
 # Step 0: Clone repository
+sudo apt install unzip -y
+mkdir jimsgarage
+mkdir Helm
+mkdir Manifests
+curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
+unzip master.zip -d ~/jimsgarage
+cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-Crowdsec-PiHole/* ~/
+rm master.zip
+rm -r ~/jimsgarage
 
 # Step 1: Check dependencies
 # Helm
