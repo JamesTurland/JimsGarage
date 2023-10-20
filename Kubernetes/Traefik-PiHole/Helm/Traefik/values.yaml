@@ -15,7 +15,7 @@ deployment:
   initContainers: []
 
 nodeSelector: 
-  worker: "true"
+  worker: "true" # add these labels to your worker nodes before running - see video
 
 ports:
   web:
