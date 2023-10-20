@@ -1,0 +1,15 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jimsgarage # change ot your domain
+  namespace: default
+spec:
+  secretName: jimsgarage-tls # change to your secretname
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "*.jimsgarage.co.uk" # change to your domain
+  dnsNames:
+  - "*.jimsgarage.co.uk" # change to your domain
+  - jimsgarage.co.uk # change to your domain
