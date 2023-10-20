@@ -1,0 +1,10 @@
+installCRDs: false
+replicaCount: 3 # change to number of masternodes
+extraArgs: # required for querying for certificate
+  - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
+  - --dns01-recursive-nameservers-only
+podDnsPolicy: None
+podDnsConfig:
+  nameservers:
+    - 1.1.1.1
+    - 9.9.9.9
