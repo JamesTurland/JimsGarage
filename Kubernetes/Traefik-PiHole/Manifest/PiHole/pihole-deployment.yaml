@@ -110,5 +110,5 @@ spec:
   selector:
     app: pihole
   externalTrafficPolicy: Local
-  loadBalancerIP: 192.168.3.67
+  loadBalancerIP: 192.168.3.67 # this is where you will point your DNS resolver to (not the GUI!)
   type: LoadBalancer
