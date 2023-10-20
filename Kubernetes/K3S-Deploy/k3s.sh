@@ -21,7 +21,10 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+#Instead of setting an version and have to update the script everytime an new relase will appear,
+#this takes the latest release automagically. :)
+KVVERSION=$(curl --silent https://api.github.com/repos/kube-vip/kube-vip/releases | grep -oP '"tag_name":\s*"v\K[^"]+' | sort -h | tail -n1)
+#KVVERSION="v0.6.3"
 
 # Set the IP addresses of the master and work nodes
 master1=192.168.3.21
@@ -128,7 +131,7 @@ kubectl k3s-ha
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
 # Step 3: Generate Daemonset with Docker
-sudo docker run --network host --rm ghcr.io/kube-vip/kube-vip:$KVVERSION manifest daemonset \
+sudo docker run --network host --rm ghcr.io/kube-vip/kube-vip:v$KVVERSION manifest daemonset \
     --interface $interface \
     --address $vip \
     --inCluster \
