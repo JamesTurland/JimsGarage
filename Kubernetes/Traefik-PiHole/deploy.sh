@@ -19,15 +19,15 @@ echo -e " \033[32;2m                                                           \
 # and https://github.com/traefik/traefik-helm-chart
 
 # Step 0: Clone repository
-if ! command -v cd ~/Helm/Traefik &> /dev/null
-then
+DESTINATION=~/Helm/Traefik
+if [ ! -d "`eval echo ${DESTINATION//>}`" ]; then
     sudo apt install unzip -y
     mkdir jimsgarage
     mkdir Helm
     mkdir Manifests
     curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
     unzip master.zip -d ~/jimsgarage
-    cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-Crowdsec-PiHole/* ~/
+    cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-PiHole/* ~/
     rm master.zip
     rm -r ~/jimsgarage
     echo -e " \033[32;5mRepo cloned - EDIT FILES!!!\033[0m"
@@ -35,7 +35,6 @@ then
 else
     echo -e " \033[32;5mRepo already exists, continuing...\033[0m"
 fi
-
 
 # Step 1: Check dependencies
 # Helm
@@ -58,8 +57,10 @@ else
     echo -e " \033[32;5mKubectl already installed\033[0m"
 fi
 
-# Step 2: Add Helm Repo
+# Step 2: Add Helm Repos
 helm repo add traefik https://helm.traefik.io/traefik
+helm repo add emberstack https://emberstack.github.io/helm-charts # required to share certs for CrowdSec
+helm repo add crowdsec https://crowdsecurity.github.io/helm-charts
 helm repo update
 
 # Step 3: Create Traefik namespace
@@ -73,39 +74,45 @@ kubectl get svc -n traefik
 kubectl get pods -n traefik
 
 # Step 6: Apply Middleware
-kubectl apply -f default-headers.yaml
+kubectl apply -f ~/Helm/Traefik/default-headers.yaml
 
 # Step 7: Create Secret for Traefik Dashboard
-kubectl apply -f secret-dashboard.yaml
+kubectl apply -f ~/Helm/Traefik/Dashboard/secret-dashboard.yaml
 
 # Step 8: Apply Middleware
-kubectl apply -f middleware.yaml
+kubectl apply -f ~/Helm/Traefik/Dashboard/middleware.yaml
 
 # Step 9: Apply Ingress to Access Service
-kubectl apply -f ingress.yaml
+kubectl apply -f ~/Helm/Traefik/Dashboard/ingress.yaml
 
 # Step 10: Install Cert-Manager (should already have this with Rancher deployment)
 # Check if we already have it by querying namespace
 namespaceStatus=$(kubectl get ns cert-manager -o json | jq .status.phase -r)
 if [ $namespaceStatus == "Active" ]
 then
-    echo "Cert-Manager already installed"
+    echo -e " \033[32;5mCert-Manager already installed, upgrading with new values.yaml...\033[0m"
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.1/cert-manager.crds.yaml
+    helm upgrade \
+    cert-manager \
+    jetstack/cert-manager \
+    --namespace cert-manager \
+    --values ~/Helm/Traefik/Cert-Manager/values.yaml
 else
-   echo "Cert-Manager is not present, installing..."
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.crds.yaml
-   helm repo add jetstack https://charts.jetstack.io
-   helm repo update
-   helm install cert-manager jetstack/cert-manager \
-   --namespace cert-manager \
-   --create-namespace \
-   --version v1.11.0
+    echo "Cert-Manager is not present, installing..."
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.crds.yaml
+    helm repo add jetstack https://charts.jetstack.io
+    helm repo update
+    helm install cert-manager jetstack/cert-manager \
+    --namespace cert-manager \
+    --create-namespace \
+    --version v1.11.0
 fi
 
 # Step 11: Apply secret for certificate (Cloudflare)
-kubectl apply -f secret-cf-token.yaml
+kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/secret-cf-token.yaml
 
 # Step 12: Apply production certificate issuer (technically you should use the staging to test as per documentation)
-kubectl apply -f letsencrypt-production.yaml
+kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
 
 # Step 13: Apply production certificate
-kubectl apply -f your-domain-com.yaml
+kubectl apply -f ~/Helm/Traefik/Cert-Manager/Certificates/Production/jimsgarage-production.yaml
