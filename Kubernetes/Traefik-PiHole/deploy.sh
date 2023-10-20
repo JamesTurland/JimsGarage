@@ -116,3 +116,11 @@ kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
 
 # Step 13: Apply production certificate
 kubectl apply -f ~/Helm/Traefik/Cert-Manager/Certificates/Production/jimsgarage-production.yaml
+
+# Step 14: Create PiHole namespace
+kubectl create namespace pihole
+
+# Step 15: Deploy PiHole
+kubectl apply -f ~/Manifest/PiHole
+
+echo -e " \033[32;5mScript finished\033[0m"
