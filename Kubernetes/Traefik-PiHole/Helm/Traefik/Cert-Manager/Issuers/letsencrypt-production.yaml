@@ -6,16 +6,16 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: your@email.com
+    email: your@email.com # add your email 
     privateKeySecretRef:
       name: letsencrypt-production
     solvers:
       - dns01:
           cloudflare:
-            email: your@email.com
+            email: your@email.com # add your email to your cloudflare account
             apiTokenSecretRef:
               name: cloudflare-token-secret
               key: cloudflare-token
         selector:
           dnsZones:
-            - "your-domain.com"
+            - "your-domain.com" # change to your zone on CloudFlare
