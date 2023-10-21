@@ -101,7 +101,7 @@ echo "StrictHostKeyChecking no" > ~/.ssh/config
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
-  ssh-copy-id ubuntu@$node
+  ssh-copy-id $user@$node
 done
 
 # Step 1: Bootstrap First k3s Node
