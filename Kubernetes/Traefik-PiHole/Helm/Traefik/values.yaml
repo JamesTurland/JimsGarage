@@ -49,6 +49,6 @@ service:
   labels: {}
   spec:
     loadBalancerIP: 192.168.3.65 # this should be an IP in the Kube-VIP range
-    externalTrafficPolicy: Local # needed for real IP to be shown for external devices
+    externalTrafficPolicy: Cluster # needed for real IP to be shown for external devices
   loadBalancerSourceRanges: []
   externalIPs: []
