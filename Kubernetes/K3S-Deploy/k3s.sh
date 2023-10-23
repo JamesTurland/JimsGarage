@@ -55,7 +55,7 @@ allnomaster1=($master2 $master3 $worker1 $worker2)
 lbrange=192.168.1.61-192.168.1.79
 
 #ssh certificate name variable
-certName=id_rsa_pm
+certName=id_rsa
 
 #############################################
 #            DO NOT EDIT BELOW              #
