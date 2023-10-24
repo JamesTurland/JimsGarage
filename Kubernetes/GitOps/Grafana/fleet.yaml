@@ -1,0 +1,10 @@
+defaultNamespace: grafana
+
+helm:
+  chart: grafana
+  repo: https://grafana.github.io/helm-charts
+  releaseName: "grafana"
+  version: ""
+  namespace: grafana
+  valuesFiles:
+    - values.yaml
