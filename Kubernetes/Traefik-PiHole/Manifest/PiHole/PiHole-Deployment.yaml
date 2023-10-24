@@ -109,6 +109,6 @@ spec:
     targetPort: 53
   selector:
     app: pihole
-  externalTrafficPolicy: ClusterIP
+  externalTrafficPolicy: Cluster
   loadBalancerIP: 192.168.3.67 # this is your DNS IP, NOT THE GUI!
   type: LoadBalancer
