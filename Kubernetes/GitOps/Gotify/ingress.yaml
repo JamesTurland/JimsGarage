@@ -1,0 +1,26 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gotify
+  namespace: gotify
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.gotify.jimsgarage.co.uk`) # change to your domain
+      kind: Rule
+      services:
+        - name: gotify
+          port: 80
+    - match: Host(`gotify.jimsgarage.co.uk`) # change to your domain
+      kind: Rule
+      services:
+        - name: gotify
+          port: 80
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: jimsgarage-tls # change to your cert
