@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotify
+  namespace: gotify
+  labels:
+    app: gotify
+    app.kubernetes.io/instance: gotify
+    app.kubernetes.io/name: gotify
+spec:
+  selector:
+    matchLabels:
+      app: gotify
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gotify
+        app.kubernetes.io/instance: gotify
+        app.kubernetes.io/name: gotify
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+      - name: gotify
+        image: gotify/server:latest
+        env:
+        - name: GOTIFY_DB_SQLITE
+          value: /app/data/gotify.db
+        - name: GOTIFY_PORT
+          value: "80"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: gotify
+          mountPath: /app/data
+      volumes:
+      - name: gotify
+        persistentVolumeClaim:
+          claimName: gotify
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotify
+  namespace: gotify
+  labels:
+    app: gotify
+    app.kubernetes.io/instance: gotify
+    app.kubernetes.io/name: gotify
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: gotify
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gotify
+  namespace: gotify
+  labels:
+    app: gotify
+    app.kubernetes.io/instance: gotify
+    app.kubernetes.io/name: gotify
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn
