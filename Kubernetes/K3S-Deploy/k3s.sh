@@ -116,7 +116,7 @@ k3sup install \
   --tls-san $vip \
   --cluster \
   --k3s-channel stable \
-  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=eth0 --node-ip=$master1" \
+  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1" \
   --merge \
   --sudo \
   --local-path $HOME/.kube/config \
