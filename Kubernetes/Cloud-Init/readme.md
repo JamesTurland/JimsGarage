@@ -11,4 +11,4 @@ qm set 5000 --serial0 socket --vga serial0
 ```
 3. Expand the VM disk size to a suitable size (suggested 10 GB)
 4. Create the Cloud-Init template 
-5. Deploy new VMs by clonding the template (full clone)
+5. Deploy new VMs by cloning the template (full clone)
