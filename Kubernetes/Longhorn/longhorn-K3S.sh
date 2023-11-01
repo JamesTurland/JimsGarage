@@ -46,6 +46,11 @@ storage=($longhorn1 $longhorn2 $longhorn3)
 sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
+#add ssh keys for all nodes
+for node in "${storage[@]}"; do
+  ssh-copy-id $user@$node
+done
+
 # Step 1: Add new longhorn nodes to cluster (note: label added)
 for newnode in "${storage[@]}"; do
   k3sup join \
