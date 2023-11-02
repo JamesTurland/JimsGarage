@@ -54,6 +54,15 @@ certName=id_rsa
 sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
+# add open-iscsi - needed for Debian and non-cloud Ubuntu
+if ! command -v sudo service open-iscsi status &> /dev/null
+then
+    echo -e " \033[31;5mOpen-ISCSI not found, installing\033[0m"
+    sudo apt install open-iscsi
+else
+    echo -e " \033[32;5mOpen-ISCSI already installed\033[0m"
+fi
+
 # Step 1: Add new longhorn nodes to cluster (note: label added)
 # Set token variable needed for RKE2 (not required for K3S)
 token=`cat token`
