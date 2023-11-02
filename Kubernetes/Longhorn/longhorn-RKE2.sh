@@ -54,6 +54,11 @@ certName=id_rsa
 sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
+# add ssh keys for all nodes
+for node in "${storage[@]}"; do
+  ssh-copy-id $user@$node
+done
+
 # add open-iscsi - needed for Debian and non-cloud Ubuntu
 if ! command -v sudo service open-iscsi status &> /dev/null
 then
