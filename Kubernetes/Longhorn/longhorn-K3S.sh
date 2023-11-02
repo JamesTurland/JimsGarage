@@ -39,6 +39,9 @@ vip=192.168.3.50
 # Array of longhorn nodes
 storage=($longhorn1 $longhorn2 $longhorn3)
 
+#ssh certificate name variable
+certName=id_rsa
+
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
@@ -69,7 +72,7 @@ for newnode in "${storage[@]}"; do
     --k3s-channel stable \
     --server-ip $master1 \
     --k3s-extra-args "--node-label \"longhorn=true\"" \
-    --ssh-key $HOME/.ssh/id_rsa
+    --ssh-key $HOME/.ssh/$certName
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
