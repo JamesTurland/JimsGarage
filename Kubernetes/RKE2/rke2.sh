@@ -95,7 +95,7 @@ done
 # create RKE2's self-installing manifest dir
 sudo mkdir -p /var/lib/rancher/rke2/server/manifests
 # Install the kube-vip deployment into rke2's self-installing manifest folder
-curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/k3s |  vipAddress=$vip vipInterface=eth0 sh | sudo tee /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
+curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/k3s |  vipAddress=$vip vipInterface=$interface sh | sudo tee /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 # Find/Replace all k3s entries to represent rke2
 sudo sed -i 's/k3s/rke2/g' /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 # copy kube-vip.yaml to home directory
