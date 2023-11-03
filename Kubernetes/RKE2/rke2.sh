@@ -152,7 +152,7 @@ kubectl create configmap -n kube-system kubevip --from-literal range-global=$lbr
 token=`cat token`
 sudo cat ~/.kube/rke2.yaml | sed 's/127.0.0.1/'$vip'/g' > $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
-export KUBECONFIG=~/.kube/config
+export KUBECONFIG=${HOME}/.kube/config
 kubectl get nodes
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
