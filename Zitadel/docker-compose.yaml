@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  zitadel:
+    restart: "always"
+    networks:
+      - "zitadel"
+      - "proxy"
+    image: "ghcr.io/zitadel/zitadel:stable"
+    # ZITADEL_MASTERKEY: 'SAcD5TY0QPp89ip28bZPfEA5WDxqmobx' # run tr -dc A-Za-z0-9 </dev/urandom | head -c 32
+    command: 'start-from-init --config /example-zitadel-config.yaml --config /example-zitadel-secrets.yaml --steps /example-zitadel-init-steps.yaml --masterkey "SAcD5TY0QPp89ip28bZPfEA5WDxqmobx" --tlsMode external'
+    depends_on:
+      certs:
+        condition: "service_completed_successfully"
+    environment:
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: Admin1!@zitadel.jimsgarage.co.uk
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: Password1!
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./example-zitadel-config.yaml:/example-zitadel-config.yaml:ro"
+      - "./example-zitadel-secrets.yaml:/example-zitadel-secrets.yaml:ro"
+      - "./example-zitadel-init-steps.yaml:/example-zitadel-init-steps.yaml:ro"
+      - "zitadel-certs:/crdb-certs:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zitadel.entrypoints=http"
+      - "traefik.http.routers.zitadel.rule=Host(`zitadel.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.zitadel-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.zitadel.middlewares=zitadel-https-redirect"
+      - "traefik.http.routers.zitadel-secure.entrypoints=https"
+      - "traefik.http.routers.zitadel-secure.rule=Host(`zitadel.jimsgarage.co.uk`)"
+      - "traefik.http.routers.zitadel-secure.tls=true"
+      - "traefik.http.routers.zitadel-secure.service=zitadel"
+      - "traefik.http.services.zitadel.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.zitadel.loadbalancer.passHostHeader=true"
+      - "traefik.http.services.zitadel.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+
+  certs:
+    image: "cockroachdb/cockroach:latest"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      [
+        "cp /certs/* /zitadel-certs/ && cockroach cert create-client --overwrite --certs-dir /zitadel-certs/ --ca-key /zitadel-certs/ca.key zitadel_user && chown 1000:1000 /zitadel-certs/*",
+      ]
+    volumes:
+      - "certs:/certs:ro"
+      - "zitadel-certs:/zitadel-certs:rw"
+    depends_on:
+      my-cockroach-db:
+        condition: "service_healthy"
+
+  my-cockroach-db:
+    restart: "always"
+    networks:
+      - "zitadel"
+    image: "cockroachdb/cockroach:latest"
+    command: "start-single-node --advertise-addr my-cockroach-db"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: "10s"
+      timeout: "30s"
+      retries: 5
+      start_period: "20s"
+    ports:
+      - "9090:8080"
+      - "26257:26257"
+    volumes:
+      - "certs:/cockroach/certs:rw"
+      - "data:/cockroach/cockroach-data:rw"
+
+networks:
+  zitadel:
+  proxy:
+    external: true
+
+volumes:
+  certs:
+  zitadel-certs:
+  data:
