@@ -3,7 +3,7 @@
 1. Mount longhorn volume to a node (recommend worker node)
 1. Log into selected worker node
 1. Create temporary folder for migration
-sudo mkdir /tmp/folder
+> sudo mkdir /tmp/folder >
 1. List the disks to format
 sudo fdisk -l
 1. Format the disk 
