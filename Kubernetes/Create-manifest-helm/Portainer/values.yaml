@@ -1,0 +1,10 @@
+nodeSelector: 
+  worker: "true"
+
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations: {}
+  labels: {}
+  loadBalancerSourceRanges: []
+  externalIPs: []
