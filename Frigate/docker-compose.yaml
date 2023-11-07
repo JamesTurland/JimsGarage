@@ -4,7 +4,7 @@ services:
     container_name: frigate
     # privileged: true # this may not be necessary for all setups
     restart: unless-stopped
-    image: blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:stable
     devices:
       #- /dev/bus/usb:/dev/bus/usb
       - /dev/apex_0:/dev/apex_0
