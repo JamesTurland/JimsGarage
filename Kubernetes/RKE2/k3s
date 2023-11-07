@@ -47,8 +47,6 @@ spec:
             - NET_RAW
             - SYS_TIME
       hostNetwork: true
-      nodeSelector:
-        node-role.kubernetes.io/master: \"true\"
       serviceAccountName: kube-vip
       tolerations:
       - effect: NoSchedule
