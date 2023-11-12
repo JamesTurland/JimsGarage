@@ -6,7 +6,7 @@ chmod 700 get_helm.sh
 ```
 # Add Rancher Helm Repository
 ```
-helm repo add rancher-alpha https://releases.rancher.com/server-charts/alpha
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 kubectl create namespace cattle-system
 ```
 
@@ -24,7 +24,7 @@ kubectl get pods --namespace cert-manager
 
 # Install Rancher
 ```
-helm install rancher rancher-alpha/rancher --devel \
+helm install rancher rancher-latest/rancher \
  --namespace cattle-system \
  --set hostname=rancher.my.org \
  --set bootstrapPassword=admin
