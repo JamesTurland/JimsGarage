@@ -23,6 +23,9 @@ echo -e " \033[32;5m                                                           \
 # Version of Kube-VIP to deploy
 KVVERSION="v0.6.3"
 
+# K3S Version
+k3sVersion="v1.26.10+k3s2"
+
 # Set the IP addresses of the master and work nodes
 master1=192.168.3.21
 master2=192.168.3.22
@@ -115,7 +118,7 @@ k3sup install \
   --user $user \
   --tls-san $vip \
   --cluster \
-  --k3s-channel stable \
+  --k3s-version $k3sVersion \
   --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1" \
   --merge \
   --sudo \
@@ -124,10 +127,7 @@ k3sup install \
   --context k3s-ha
 echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 
-
-
 # Step 2: Install Kube-VIP for HA
-
 kubectl k3s-ha
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
@@ -159,7 +159,7 @@ for newnode in "${masters[@]}"; do
     --ip $newnode \
     --user $user \
     --sudo \
-    --k3s-channel stable \
+    --k3s-version $k3sVersion \
     --server \
     --server-ip $master1 \
     --ssh-key $HOME/.ssh/$certName \
@@ -173,7 +173,7 @@ for newagent in "${workers[@]}"; do
     --ip $newagent \
     --user $user \
     --sudo \
-    --k3s-channel stable \
+    --k3s-version $k3sVersion \
     --server-ip $master1 \
     --ssh-key $HOME/.ssh/$certName
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
