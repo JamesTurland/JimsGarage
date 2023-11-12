@@ -111,6 +111,15 @@ for node in "${all[@]}"; do
   ssh-copy-id $user@$node
 done
 
+# Install policycoreutils for each node
+for newnode in "${all[@]}"; do
+  ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  NEEDRESTART_MODE=a apt install policycoreutils -y
+  exit
+EOF
+  echo -e " \033[32;5mPolicyCoreUtils installed!\033[0m"
+done
+
 # Step 1: Bootstrap First k3s Node
 mkdir ~/.kube
 k3sup install \
