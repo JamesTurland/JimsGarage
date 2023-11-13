@@ -41,5 +41,6 @@ services:
       - "traefik.http.services.frigate.loadbalancer.server.port=5000"
       - "traefik.docker.network=proxy"
 
-proxy:
-  external: true
+networks:
+  proxy:
+    external: true
