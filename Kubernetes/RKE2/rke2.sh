@@ -173,8 +173,6 @@ EOF
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
 done
 
-kubectl get nodes -o wide
-
 # Step 7: Add Workers
 for newnode in "${workers[@]}"; do
   ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
@@ -189,8 +187,6 @@ for newnode in "${workers[@]}"; do
 EOF
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
 done
-
-kubectl get nodes -o wide
 
 #Step 8: Setup Kube-VIP as LoadBalancer
 #IP range for loadbalancer services to use
