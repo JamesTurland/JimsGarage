@@ -104,7 +104,7 @@ lapi:
       enabled: true
   persistentVolume:
     config:
-      enabled: true
+      enabled: false
   resources:
     limits:
       memory: 200Mi

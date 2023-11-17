@@ -24,7 +24,9 @@ nodeSelector:
 
 ports:
   web:
-    redirectTo: websecure
+    redirectTo:
+      port: websecure
+      priority: 10
   websecure:
     tls:
       enabled: true
