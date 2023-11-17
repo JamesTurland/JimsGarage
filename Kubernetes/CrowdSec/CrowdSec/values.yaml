@@ -1,0 +1,127 @@
+container_runtime: containerd
+# Here you can specify your own custom configuration to be loaded in crowdsec agent or lapi
+# Each config needs to be a multi-line using '|' in YAML specs
+# for the agent those configs will be loaded : parsers, scenarios, postoverflows, simulation.yaml
+# for the lapi those configs will be loaded : profiles.yaml, notifications, console.yaml
+config:
+  profiles.yaml: |
+    name: default_ip_remediation
+    #debug: true
+    filters:
+     - Alert.Remediation == true && Alert.GetScope() == "Ip"
+    decisions:
+     - type: ban
+       duration: 4h
+    #duration_expr: Sprintf('%dh', (GetDecisionsCount(Alert.GetValue()) + 1) * 4)
+    notifications:
+    #   - slack_default  # Set the webhook in /etc/crowdsec/notifications/slack.yaml before enabling this.
+    #   - splunk_default # Set the splunk url and token in /etc/crowdsec/notifications/splunk.yaml before enabling this.
+      - http_default   # Set the required http parameters in /etc/crowdsec/notifications/http.yaml before enabling this.
+    #   - email_default  # Set the required email parameters in /etc/crowdsec/notifications/email.yaml before enabling this.
+  notifications: 
+    http.yaml: |
+      type: http          # Don't change
+      name: http_default # Must match the registered plugin in the profile
+
+      # One of "trace", "debug", "info", "warn", "error", "off"
+      log_level: info
+
+      # group_wait:         # Time to wait collecting alerts before relaying a message to this plugin, eg "30s"
+      # group_threshold:    # Amount of alerts that triggers a message before <group_wait> has expired, eg "10"
+      # max_retry:          # Number of attempts to relay messages to plugins in case of error
+      # timeout:            # Time to wait for response from the plugin before considering the attempt a failure, eg "10s"
+
+      #-------------------------
+      # plugin-specific options
+
+      # The following template receives a list of models.Alert objects
+      # The output goes in the http request body
+      format: |
+        {{ range . -}}
+        {{ $alert := . -}}
+        {
+          "extras": {
+            "client::display": {
+            "contentType": "text/markdown"
+          }
+        },
+        "priority": 3,
+        {{range .Decisions -}}
+        "title": "{{.Type }} {{ .Value }} for {{.Duration}}",
+        "message": "{{.Scenario}}  \n\n[crowdsec cti](https://app.crowdsec.net/cti/{{.Value -}})  \n\n[shodan](https://shodan.io/host/{{.Value -}})"
+        {{end -}}
+        }
+        {{ end -}}
+
+      # The plugin will make requests to this url, eg:  https://www.example.com/
+      url: https://gotify.YOUR-DOMAIN.COM/message
+
+      # Any of the http verbs: "POST", "GET", "PUT"...
+      method: POST
+
+      headers:
+        X-Gotify-Key: YOUR-KEY
+        Content-Type: application/json
+        skip_tls_verification: true
+tls:
+  enabled: true
+  bouncer:
+    reflector:
+      namespaces: ["traefik"]
+agent:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Equal
+      effect: NoSchedule
+  # Specify each pod whose logs you want to process
+  acquisition:
+    # The namespace where the pod is located
+    - namespace: traefik
+      # The pod name
+      podName: traefik-*
+      # as in crowdsec configuration, we need to specify the program name to find a matching parser
+      program: traefik
+  env:
+    - name: PARSERS
+      value: "crowdsecurity/cri-logs crowdsecurity/whitelists"
+    - name: COLLECTIONS
+      value: "crowdsecurity/linux crowdsecurity/traefik crowdsecurity/home-assistant LePresidente/authelia Dominic-Wagner/vaultwarden crowdsecurity/unifi"
+    # When testing, allow bans on private networks
+    #- name: DISABLE_PARSERS
+    #  value: "crowdsecurity/whitelists"
+  persistentVolume:
+    config:
+      enabled: false
+  nodeSelector: 
+    worker: "true"
+  image:
+    pullPolicy: Always
+lapi:
+  dashboard:
+    enabled: false
+    ingress:
+      host: dashboard.local
+      enabled: true
+  persistentVolume:
+    config:
+      enabled: true
+  resources:
+    limits:
+      memory: 200Mi
+    requests:
+      cpu: 250m
+      memory: 200Mi
+  env:
+    # For an internal test, disable the Online API
+    - name: DISABLE_ONLINE_API
+      value: "false"
+    - name: ENROLL_KEY
+      value: "YOUR-CLOUD-API-KEY"
+    - name: ENROLL_INSTANCE_NAME
+      value: "CLUSTER-NAME"
+    - name: ENROLL_TAGS
+      value: "homelab"
+  nodeSelector: 
+    worker: "true"
+image:
+  pullPolicy: Always

@@ -1,0 +1,76 @@
+globalArguments:
+  - "--global.sendanonymoususage=false"
+  - "--global.checknewversion=true"
+
+additionalArguments:
+  - "--serversTransport.insecureSkipVerify=true"
+  - "--log.level=INFO"
+  - "--experimental.plugins.bouncer.moduleName=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+  - "--experimental.plugins.bouncer.version=v1.1.16"
+  - "--entrypoints.web.http.middlewares=traefik-bouncer@kubernetescrd"
+  - "--entrypoints.websecure.http.middlewares=traefik-bouncer@kubernetescrd"
+  - "--providers.kubernetescrd"
+
+deployment:
+  enabled: true
+  replicas: 2
+  annotations: {}
+  podAnnotations: {}
+  additionalContainers: []
+  initContainers: []
+
+nodeSelector: 
+  worker: "true"
+
+ports:
+  web:
+    redirectTo: websecure
+  websecure:
+    tls:
+      enabled: true
+      
+ingressRoute:
+  dashboard:
+    enabled: false
+
+providers:
+  kubernetesCRD:
+    enabled: true
+    ingressClass: traefik-external
+    allowExternalNameServices: true
+    allowCrossNamespace: true
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: true
+    publishedService:
+      enabled: false
+
+rbac:
+  enabled: true
+
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations: {}
+  labels: {}
+  spec:
+    loadBalancerIP: 192.168.3.65 # this should be an IP in the Kube-VIP LB range
+    externalTrafficPolicy: Local # required to show the source IP - Cluster will not show internal IP and crowdsec will not work
+  loadBalancerSourceRanges: []
+  externalIPs: []
+
+logs:
+  access:
+    enabled: true
+
+experimental:
+  plugins:
+    enabled: true
+
+volumes:
+  - name: crowdsec-bouncer-tls
+    mountPath: /etc/traefik/crowdsec-certs/
+    type: secret
+
+image:
+  pullPolicy: Always
