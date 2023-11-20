@@ -1,5 +1,6 @@
 # Instructions
-1. helm install \
+1. ```
+    helm install \
     cert-manager jetstack/cert-manager \
     --create-namespace \
     --namespace cert-manager \
@@ -9,7 +10,9 @@
     reflector emberstack/reflector \
     --create-namespace \
     --namespace reflector
-2. helm upgrade \
+    ```
+2. ```
+    helm upgrade \
     traefik traefik/traefik \
     --namespace traefik \
     -f traefik-values.yaml
@@ -19,3 +22,4 @@
     --create-namespace \
     --namespace crowdsec \
     -f crowdsec-values.yaml
+    ```
