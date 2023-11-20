@@ -209,7 +209,7 @@ helm repo update
 helm install cert-manager jetstack/cert-manager \
 --namespace cert-manager \
 --create-namespace \
---version v1.11.0
+--version v1.13.2
 kubectl get pods --namespace cert-manager
 
 # Install Rancher
