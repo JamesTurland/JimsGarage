@@ -11,5 +11,3 @@ spec:
     k8sServicePort: 6443
     cni:
       chainingMode: "none"
-    tunnelProtocol: "vxlan"
-    routingMode: "tunnel"
