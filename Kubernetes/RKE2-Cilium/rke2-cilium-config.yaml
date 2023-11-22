@@ -13,9 +13,3 @@ spec:
       chainingMode: "none"
     tunnelProtocol: "vxlan"
     routingMode: "tunnel"
-    ipam:
-      mode: cluster-pool
-      operator:
-        clusterPoolIPv4PodCIDRList:
-        - "<lb-network>"
-        clusterPoolIPv4MaskSize: 27
