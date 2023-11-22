@@ -77,13 +77,14 @@ for newnode in "${storage[@]}"; do
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
   echo "server: https://$vip:9345" >> /etc/rancher/rke2/config.yaml
-  echo "node-label: longhorn=true" >> /etc/rancher/rke2/config.yaml
+  echo "node-label:" >> /etc/rancher/rke2/config.yaml
+  echo "  - longhorn=true" >> /etc/rancher/rke2/config.yaml
   curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE="agent" sh -
   systemctl enable rke2-agent.service
   systemctl start rke2-agent.service
   exit
 EOF
-  echo -e " \033[32;5mMaster node joined successfully!\033[0m"
+  echo -e " \033[32;5mLonghorn node joined successfully!\033[0m"
 done
 
 # Step 2: Install Longhorn (using modified Official to pin to Longhorn Nodes)
