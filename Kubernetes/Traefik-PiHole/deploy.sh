@@ -99,13 +99,13 @@ then
     --values ~/Helm/Traefik/Cert-Manager/values.yaml
 else
     echo "Cert-Manager is not present, installing..."
-    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.crds.yaml
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
     helm repo add jetstack https://charts.jetstack.io
     helm repo update
     helm install cert-manager jetstack/cert-manager \
     --namespace cert-manager \
     --create-namespace \
-    --version v1.11.0
+    --version v1.13.2
 fi
 
 # Step 11: Apply secret for certificate (Cloudflare)
@@ -123,4 +123,4 @@ kubectl create namespace pihole
 # Step 15: Deploy PiHole
 kubectl apply -f ~/Manifest/PiHole
 
-echo -e " \033[32;5mScript finished\033[0m"
+echo -e " \033[32;5mScript finished. Be sure to create PVC for PiHole in Longhorn UI\033[0m"
