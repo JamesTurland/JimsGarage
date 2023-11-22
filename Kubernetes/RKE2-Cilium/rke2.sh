@@ -132,8 +132,9 @@ mv config.yaml /etc/rancher/rke2/config.yaml
 echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >> ~/.bashrc ; echo 'alias k=kubectl' >> ~/.bashrc ; source ~/.bashrc ;
 
 curl -LJO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2-Cilium/rke2-cilium-config.yaml
-sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
-sudo cat /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml | sed 's/<lb-network>/'$lbrange'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > rke2-cilium-config.yaml
+sudo cat rke2-cilium-config.yaml | sed 's/<lb-network>/'$lbrange'/g' > rke2-cilium-config.yaml
+cp rke2-cilium-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
 
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
