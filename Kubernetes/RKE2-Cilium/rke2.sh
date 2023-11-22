@@ -102,7 +102,6 @@ mkdir ~/.kube
 sudo mkdir -p /etc/rancher/rke2
 touch config.yaml
 echo "tls-san:" >> config.yaml 
-echo "  - $vip" >> config.yaml
 echo "  - $master1" >> config.yaml
 echo "  - $master2" >> config.yaml
 echo "  - $master3" >> config.yaml
@@ -131,6 +130,10 @@ mkdir -p /var/lib/rancher/rke2/server/manifests
 mkdir -p /etc/rancher/rke2
 mv config.yaml /etc/rancher/rke2/config.yaml
 echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >> ~/.bashrc ; echo 'alias k=kubectl' >> ~/.bashrc ; source ~/.bashrc ;
+
+curl -LJO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2-Cilium/rke2-cilium-config.yaml
+sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
@@ -159,7 +162,6 @@ for newnode in "${masters[@]}"; do
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
   echo "server: https://$master1:9345" >> /etc/rancher/rke2/config.yaml
   echo "tls-san:" >> /etc/rancher/rke2/config.yaml
-  echo "  - $vip" >> /etc/rancher/rke2/config.yaml
   echo "  - $master1" >> /etc/rancher/rke2/config.yaml
   echo "  - $master2" >> /etc/rancher/rke2/config.yaml
   echo "  - $master3" >> /etc/rancher/rke2/config.yaml
@@ -170,9 +172,8 @@ for newnode in "${masters[@]}"; do
   echo "  - rke2-ingress-nginx" >> /etc/rancher/rke2/config.yaml
   echo "disable-kube-proxy: \"true\"" >> /etc/rancher/rke2/config.yaml
 
-  touch /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
-  echo "token: $token" >> /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
-
+  curl -LJO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2-Cilium/rke2-cilium-config.yaml
+  sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
 
   curl -sfL https://get.rke2.io | sh -
   systemctl enable rke2-server.service
@@ -190,7 +191,7 @@ for newnode in "${workers[@]}"; do
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
-  echo "server: https://$vip:9345" >> /etc/rancher/rke2/config.yaml
+  echo "server: https://$master1:9345" >> /etc/rancher/rke2/config.yaml
   echo "node-label:" >> /etc/rancher/rke2/config.yaml
   echo "  - worker=true" >> /etc/rancher/rke2/config.yaml
   echo "  - longhorn=true" >> /etc/rancher/rke2/config.yaml
