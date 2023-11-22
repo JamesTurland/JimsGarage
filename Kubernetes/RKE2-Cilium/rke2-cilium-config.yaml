@@ -8,6 +8,6 @@ spec:
   valuesContent: |-
     kubeProxyReplacement: strict
     k8sServiceHost: <KUBE_API_SERVER_IP>
-    k8sServicePort: <KUBE_API_SERVER_PORT>
+    k8sServicePort: 6443
     cni:
       chainingMode: "none"
