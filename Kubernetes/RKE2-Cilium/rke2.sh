@@ -55,8 +55,8 @@ all=($master1 $master2 $master3 $worker1 $worker2)
 # Array of all minus master1
 allnomaster1=($master2 $master3 $worker1 $worker2)
 
-#Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
+#Loadbalancer IP range - this is set to /27 in rke2-cilium-config.yaml
+lbrange=192.168.3.64
 
 #ssh certificate name variable
 certName=id_rsa
@@ -133,6 +133,7 @@ echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export
 
 curl -LJO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2-Cilium/rke2-cilium-config.yaml
 sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+sudo cat /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml | sed 's/<lb-network>/'$lbrange'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
 
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
@@ -174,6 +175,7 @@ for newnode in "${masters[@]}"; do
 
   curl -LJO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2-Cilium/rke2-cilium-config.yaml
   sudo cat rke2-cilium-config.yaml | sed 's/<KUBE_API_SERVER_IP>/'$master1'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+  sudo cat /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml | sed 's/<lb-network>/'$lbrange'/g' > /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
 
   curl -sfL https://get.rke2.io | sh -
   systemctl enable rke2-server.service

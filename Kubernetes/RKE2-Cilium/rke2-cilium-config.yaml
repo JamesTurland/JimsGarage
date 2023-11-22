@@ -11,3 +11,10 @@ spec:
     k8sServicePort: 6443
     cni:
       chainingMode: "none"
+# Configure IPAM/PodCIDR
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList:
+    - "<lb-network>"
+    clusterPoolIPv4MaskSize: 27
