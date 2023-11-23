@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: minecraft
+    app.kubernetes.io/instance: minecraft
+  name: minecraft
+  namespace: minecraft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft
+  template:
+    metadata:
+      labels:
+        app: minecraft
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+        - env:
+            - name: EULA
+              value: "TRUE"
+          image: itzg/minecraft-server
+          name: minecraft-server
+          ports:
+            - containerPort: 25565
+          resources: {}
+          stdin: true
+          tty: true
+          volumeMounts:
+            - mountPath: /data
+              name: minecraft
+      restartPolicy: Always
+      volumes:
+        - name: minecraft
+          persistentVolumeClaim:
+            claimName: minecraft
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: minecraft
+  name: minecraft
+  namespace: minecraft
+spec:
+  ports:
+  - name: minecraft-tcp
+    port: 25565
+    protocol: TCP
+    targetPort: 25565
+  selector:
+    app: minecraft
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.200.19
+  type: LoadBalancer

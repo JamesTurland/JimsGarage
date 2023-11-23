@@ -1,0 +1,22 @@
+version: '3.3'
+services:
+    minecraft-server:
+        container_name: minecraft-server
+        image: itzg/minecraft-server
+        ports:
+            - 25565:25565
+        environment:
+            - TYPE=FORGE
+            - EULA=TRUE
+        volumes:
+            - /home/ubuntu/docker/minecraft:/data
+        stdin_open: true
+        tty: true
+        restart: unless-stopped
+        networks:
+          macvlan4: # change name to whatever you like
+             ipv4_address: 192.168.4.20 # change to your IP in your vLAN subnet
+
+networks:
+  macvlan4:
+    external: true
