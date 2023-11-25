@@ -112,7 +112,7 @@ lapi:
       cpu: 250m
       memory: 200Mi
   env:
-    # For an internal test, disable the Online API
+    # For an internal test, disable the Online API by setting 'DISABLE_ONLINE_API' to "true"
     - name: DISABLE_ONLINE_API
       value: "false"
     - name: ENROLL_KEY
