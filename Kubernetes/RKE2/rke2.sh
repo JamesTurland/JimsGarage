@@ -242,6 +242,3 @@ done
 kubectl get svc -n cattle-system
 
 echo -e " \033[32;5mAccess Rancher from the IP above - Password is admin!\033[0m"
-
-# Update Kube Config with VIP IP
-sudo cat /etc/rancher/rke2/rke2.yaml | sed 's/'$master1'/'$vip'/g' > /etc/rancher/rke2/rke2.yaml
