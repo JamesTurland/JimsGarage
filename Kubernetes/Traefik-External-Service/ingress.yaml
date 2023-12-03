@@ -1,0 +1,30 @@
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: proxmox
+  namespace: default
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.proxmox.jimsgarage.co.uk`)
+      kind: Rule
+      services:
+        - name: proxmox
+          port: 8006
+          scheme: https
+          passHostHeader: true
+    - match: Host(`proxmox.jimsgarage.co.uk`)
+      kind: Rule
+      services:
+        - name: proxmox
+          port: 8006
+          scheme: https
+          passHostHeader: true
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: jimsgarage-tls
