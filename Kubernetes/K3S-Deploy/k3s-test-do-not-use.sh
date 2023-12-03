@@ -177,7 +177,7 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/conf
 # Download ipAddressPool and configure using lbrange above
 curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool.yaml
 
-curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool.yaml |  lbrange=$lbrange sh | tee ~/ipAddressPool.yaml
+curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool.yaml | lbrange=$lbrange sh | tee ~/ipAddressPool.yaml
 
 
 # Step 9: Test with Nginx
