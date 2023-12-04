@@ -95,7 +95,10 @@ done
 # create RKE2's self-installing manifest dir
 sudo mkdir -p /var/lib/rancher/rke2/server/manifests
 # Install the kube-vip deployment into rke2's self-installing manifest folder
-curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/k3s |  vipAddress=$vip vipInterface=$interface sh | sudo tee /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
+curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip
+cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' > $HOME/kube-vip.yaml
+sudo mv kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
+
 # Find/Replace all k3s entries to represent rke2
 sudo sed -i 's/k3s/rke2/g' /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 # copy kube-vip.yaml to home directory
@@ -159,8 +162,6 @@ kubectl get nodes
 # Step 5: Install kube-vip as network LoadBalancer - Install the kube-vip Cloud Provider
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
-#IP range for loadbalancer services to use
-kubectl create configmap -n kube-system kubevip --from-literal range-global=$lbrange
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
 for newnode in "${masters[@]}"; do
@@ -199,13 +200,31 @@ for newnode in "${workers[@]}"; do
   systemctl start rke2-agent.service
   exit
 EOF
-  echo -e " \033[32;5mMaster node joined successfully!\033[0m"
+  echo -e " \033[32;5mWorker node joined successfully!\033[0m"
 done
 
 kubectl get nodes
 
-# Step 8: Install Rancher (Optional - Delete if not required)
+# Step 8: Install Metallb
+echo -e " \033[32;5mDeploying Metallb\033[0m"
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+# Download ipAddressPool and configure using lbrange above
+curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool
+cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
+
+# Step 9: Deploy IP Pools and l2Advertisement
+echo -e " \033[32;5mAdding IP Pools, waiting for Metallb to be available first. This can take a long time as we're likely being rate limited for container pulls...\033[0m"
+kubectl wait --namespace metallb-system \
+                --for=condition=ready pod \
+                --selector=component=controller \
+                --timeout=1800s
+kubectl apply -f ipAddressPool.yaml
+kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
+
+# Step 10: Install Rancher (Optional - Delete if not required)
 #Install Helm
+echo -e " \033[32;5mInstalling Helm\033[0m"
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 chmod 700 get_helm.sh
 ./get_helm.sh
@@ -215,6 +234,7 @@ helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 kubectl create namespace cattle-system
 
 # Install Cert-Manager
+echo -e " \033[32;5mDeploying Cert-Manager\033[0m"
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
 helm repo add jetstack https://charts.jetstack.io
 helm repo update
@@ -225,6 +245,7 @@ helm install cert-manager jetstack/cert-manager \
 kubectl get pods --namespace cert-manager
 
 # Install Rancher
+echo -e " \033[32;5mDeploying Rancher\033[0m"
 helm install rancher rancher-latest/rancher \
  --namespace cattle-system \
  --set hostname=rancher.my.org \

@@ -200,7 +200,7 @@ for newnode in "${workers[@]}"; do
   systemctl start rke2-agent.service
   exit
 EOF
-  echo -e " \033[32;5mMaster node joined successfully!\033[0m"
+  echo -e " \033[32;5mWorker node joined successfully!\033[0m"
 done
 
 kubectl get nodes
@@ -214,11 +214,11 @@ curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernet
 cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
 
 # Step 9: Deploy IP Pools and l2Advertisement
-echo -e " \033[32;5mAdding IP Pools\033[0m"
+echo -e " \033[32;5mAdding IP Pools, waiting for Metallb to be available first. This can take a long time as we're likely being rate limited for container pulls...\033[0m"
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=controller \
-                --timeout=120s
+                --timeout=1800s
 kubectl apply -f ipAddressPool.yaml
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
 
