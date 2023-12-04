@@ -130,14 +130,13 @@ kubectl k3s-ha
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
 # Step 3: Download kube-vip
-curl -sL https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip.yaml
+curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip.yaml
 
 # Step 4: Copy kube-vip.yaml to master1
 scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
 
 
 # Step 5: Connect to Master1 and move kube-vip.yaml
-
 ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
