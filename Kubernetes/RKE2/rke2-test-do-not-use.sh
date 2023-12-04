@@ -159,8 +159,6 @@ kubectl get nodes
 # Step 5: Install kube-vip as network LoadBalancer - Install the kube-vip Cloud Provider
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
-#IP range for loadbalancer services to use
-kubectl create configmap -n kube-system kubevip --from-literal range-global=$lbrange
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
 for newnode in "${masters[@]}"; do
@@ -204,7 +202,22 @@ done
 
 kubectl get nodes
 
-# Step 8: Install Rancher (Optional - Delete if not required)
+# Step 8: Install Metallb
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+# Download ipAddressPool and configure using lbrange above
+curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool
+cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
+
+# Step 9: Deploy IP Pools and l2Advertisement
+kubectl wait --namespace metallb-system \
+                --for=condition=ready pod \
+                --selector=component=controller \
+                --timeout=120s
+kubectl apply -f ipAddressPool.yaml
+kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
+
+# Step 10: Install Rancher (Optional - Delete if not required)
 #Install Helm
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 chmod 700 get_helm.sh
