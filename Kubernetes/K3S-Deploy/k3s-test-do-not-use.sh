@@ -142,7 +142,7 @@ ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 EOF
 
-# Step 6: Add new master nodes (servers)
+# Step 6: Add new master nodes (servers) & workers
 for newnode in "${masters[@]}"; do
   k3sup join \
     --ip $newnode \
@@ -157,6 +157,7 @@ for newnode in "${masters[@]}"; do
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
 done
 
+# add workers
 for newagent in "${workers[@]}"; do
   k3sup join \
     --ip $newagent \
@@ -164,7 +165,8 @@ for newagent in "${workers[@]}"; do
     --sudo \
     --k3s-version $k3sVersion \
     --server-ip $master1 \
-    --ssh-key $HOME/.ssh/$certName
+    --ssh-key $HOME/.ssh/$certName \
+    --k3s-extra-args "--node-label \"longhorn=true\" --node-label \"worker=true\""
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
