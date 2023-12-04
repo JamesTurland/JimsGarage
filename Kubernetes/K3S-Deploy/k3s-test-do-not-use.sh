@@ -126,7 +126,6 @@ k3sup install \
 echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 
 # Step 2: Install Kube-VIP for HA
-kubectl k3s-ha
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
 # Step 3: Download kube-vip
