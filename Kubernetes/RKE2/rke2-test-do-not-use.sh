@@ -203,6 +203,7 @@ done
 kubectl get nodes
 
 # Step 8: Install Metallb
+echo -e " \033[32;5mDeploying Metallb\033[0m"
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
@@ -210,6 +211,7 @@ curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernet
 cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
 
 # Step 9: Deploy IP Pools and l2Advertisement
+echo -e " \033[32;5mAdding IP Pools\033[0m"
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=controller \
@@ -219,6 +221,7 @@ kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/
 
 # Step 10: Install Rancher (Optional - Delete if not required)
 #Install Helm
+echo -e " \033[32;5mInstalling Helm\033[0m"
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
 chmod 700 get_helm.sh
 ./get_helm.sh
@@ -228,6 +231,7 @@ helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
 kubectl create namespace cattle-system
 
 # Install Cert-Manager
+echo -e " \033[32;5mDeploying Cert-Manager\033[0m"
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
 helm repo add jetstack https://charts.jetstack.io
 helm repo update
@@ -238,6 +242,7 @@ helm install cert-manager jetstack/cert-manager \
 kubectl get pods --namespace cert-manager
 
 # Install Rancher
+echo -e " \033[32;5mDeploying Rancher\033[0m"
 helm install rancher rancher-latest/rancher \
  --namespace cattle-system \
  --set hostname=rancher.my.org \
