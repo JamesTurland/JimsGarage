@@ -190,6 +190,10 @@ while [[ $(kubectl get pods -l app=nginx -o 'jsonpath={..status.conditions[?(@.t
 done
 
 # Step 10: Deploy IP Pools and l2Advertisement
+kubectl wait --namespace metallb-system \
+                --for=condition=ready pod \
+                --selector=component=controller \
+                --timeout=120s
 kubectl apply -f ipAddressPool.yaml
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/l2Advertisement.yaml
 
