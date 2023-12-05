@@ -7,6 +7,7 @@ mkdir -p /etc/rancher/rke2
 sudo nano /etc/rancher/rke2/config.yaml
 ```
 # Add values
+```
 token: <ADD-TOKEN>
 server: https://<ADD-VIP>:9345
 node-label:
