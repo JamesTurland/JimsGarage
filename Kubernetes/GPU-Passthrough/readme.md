@@ -16,7 +16,7 @@ node-label:
 ```
 # Install RKE2
 ```
-sudo -su
+sudo -u
 sudo curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE="agent" sh -
 ```
 # Enable RKE2
