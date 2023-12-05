@@ -4,7 +4,7 @@
 ```
 # Create File for RKE2 - Config
 ```
-  touch /etc/rancher/rke2/config.yaml
+  sudo touch /etc/rancher/rke2/config.yaml
   echo "token: <ADD-TOKEN>" >> /etc/rancher/rke2/config.yaml
   echo "server: https://<ADD-VIP>:9345" >> /etc/rancher/rke2/config.yaml
   echo "node-label:" >> /etc/rancher/rke2/config.yaml
