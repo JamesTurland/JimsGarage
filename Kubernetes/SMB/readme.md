@@ -12,3 +12,9 @@ kubectl create secret generic smbcreds --from-literal username=USERNAME --from-l
 ```
 kubectl create -f https://raw.githubusercontent.com/kubernetes-csi/csi-driver-smb/master/deploy/example/storageclass-smb.yaml
 ```
+
+# Check status
+```
+kubectl -n kube-system get pod -o wide --watch -l app=csi-smb-controller
+kubectl -n kube-system get pod -o wide --watch -l app=csi-smb-node
+```
