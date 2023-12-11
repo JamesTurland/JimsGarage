@@ -1,6 +1,6 @@
 globalArguments:
   - "--global.sendanonymoususage=false"
-  - "--global.checknewversion=false"
+  - "--global.checknewversion=true"
 
 additionalArguments:
   - "--serversTransport.insecureSkipVerify=true"
@@ -48,7 +48,7 @@ service:
   annotations: {}
   labels: {}
   spec:
-    loadBalancerIP: 192.168.3.65 # this should be an IP in the Kube-VIP range
+    loadBalancerIP: 10.20.67.51 # this should be an IP in the Kube-VIP range
     externalTrafficPolicy: Local # needed for real IP to be shown for external devices
   loadBalancerSourceRanges: []
   externalIPs: []
