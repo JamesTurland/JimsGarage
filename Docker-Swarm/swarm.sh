@@ -20,11 +20,11 @@ echo -e " \033[32;5m                                                           \
 # YOU SHOULD ONLY NEED TO EDIT THIS SECTION #
 #############################################
 
-# Set the IP addresses of the admin, masters, and workers nodes
+# Set the IP addresses of the admin, managers, and workers nodes
 admin=192.168.3.5
-master1=192.168.3.21
-master2=192.168.3.22
-master3=192.168.3.23
+manager1=192.168.3.21
+manager2=192.168.3.22
+manager3=192.168.3.23
 worker1=192.168.3.24
 worker2=192.168.3.25
 
@@ -37,20 +37,20 @@ interface=eth0
 # Set the virtual IP address (VIP)
 vip=192.168.3.50
 
-# Array of all master nodes
-allmasters=($master1 $master2 $master3)
+# Array of all manager nodes
+allmanagers=($manager1 $manager2 $manager3)
 
-# Array of master nodes
-masters=($master2 $master3)
+# Array of manager nodes
+managers=($manager2 $manager3)
 
 # Array of worker nodes
 workers=($worker1 $worker2)
 
 # Array of all
-all=($master1 $master2 $master3 $worker1 $worker2)
+all=($manager1 $manager2 $manager3 $worker1 $worker2)
 
-# Array of all minus master1
-allnomaster1=($master2 $master3 $worker1 $worker2)
+# Array of all minus manager1
+allnomanager1=($manager2 $manager3 $worker1 $worker2)
 
 #Loadbalancer IP range
 lbrange=192.168.3.60-192.168.3.80
@@ -101,10 +101,39 @@ EOF
 done
 
 # Step 1: Create Swarm on first node
-ssh -tt $user@$master1 -i ~/.ssh/$certName sudo su <<EOF
-docker swarm init --advertise-addr $master1
-docker swarm join-token manager | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*'` >> master.txt
-docker swarm join-token worker | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*'` >> master.txt
+ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
+docker swarm init --advertise-addr $manager1
+docker swarm join-token manager | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' >> manager.txt
+docker swarm join-token worker | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' >> worker.txt
+ssh-copy-id -i /home/$user/.ssh/$certName $user@$admin
+scp -i /home/$user/.ssh/$certName /home/$user/manager.txt $user@$admin:~/manager
+scp -i /home/$user/.ssh/$certName /home/$user/worker.txt $user@$admin:~/worker
 exit
 EOF
-echo -e " \033[32;5mMaster1 Completed\033[0m"
+echo -e " \033[32;5mManager1 Completed\033[0m"
+
+# Step 2: Set variables
+managerToken='cat manager'
+workerToken='cat worker'
+
+# Step 3: Connect additional managers
+for newnode in "${managers[@]}"; do
+  ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  docker swarm join \
+  --token  $managerToken \
+  $manager1
+  exit
+EOF
+  echo -e " \033[32;5mManager node joined successfully!\033[0m"
+done
+
+# Step 4: Connect additional worker
+for newnode in "${workers[@]}"; do
+  ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  docker swarm join \
+  --token  $workerToken \
+  $manager1
+  exit
+EOF
+  echo -e " \033[32;5mWorker node joined successfully!\033[0m"
+done
