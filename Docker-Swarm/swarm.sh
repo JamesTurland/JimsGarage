@@ -9,7 +9,7 @@ echo -e " \033[33;5m                                               |___/       \
 
 echo -e " \033[36;5m    ___          _             ___                         \033[0m"
 echo -e " \033[36;5m   |   \ ___  __| |_____ _ _  / __|_ __ ____ _ _ _ _ __    \033[0m"
-echo -e " \033[36;5m   | |) / _ \/ _| / / -_) \'_| \__ \ V  V / _\` | '_| '  \   \033[0m"
+echo -e " \033[36;5m   | |) / _ \/ _| / / -_) \'_| \__ \ V  V / _\` | '_| '  \  \033[0m"
 echo -e " \033[36;5m   |___/\___/\__|_\_\___|_|   |___/\_/\_/\__,_|_| |_|_|_|  \033[0m"
 echo -e " \033[36;5m                                                           \033[0m"
 echo -e " \033[32;5m             https://youtube.com/@jims-garage              \033[0m"
@@ -78,6 +78,11 @@ for node in "${all[@]}"; do
   ssh-copy-id $user@$node
 done
 
+# Copy SSH keys to MN1 to copy tokens back later
+scp -i /home/$user/.ssh/$certName /home/$user/$certName $user@$manager1:~/.ssh
+scp -i /home/$user/.ssh/$certName /home/$user/$certName.pub $user@$manager1:~/.ssh
+
+
 # Install Docker for each node
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
@@ -97,14 +102,15 @@ for newnode in "${all[@]}"; do
   NEEDRESTART_MODE=a apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
   exit
 EOF
-  echo -e " \033[32;5mPolicyCoreUtils installed!\033[0m"
+  echo -e " \033[32;5mDocker installed!\033[0m"
 done
 
 # Step 1: Create Swarm on first node
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
 docker swarm init --advertise-addr $manager1
-docker swarm join-token manager | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' >> manager.txt
-docker swarm join-token worker | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' >> worker.txt
+docker swarm join-token manager | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' > manager.txt
+docker swarm join-token worker | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' > worker.txt
+echo "StrictHostKeyChecking no" > ~/.ssh/config
 ssh-copy-id -i /home/$user/.ssh/$certName $user@$admin
 scp -i /home/$user/.ssh/$certName /home/$user/manager.txt $user@$admin:~/manager
 scp -i /home/$user/.ssh/$certName /home/$user/worker.txt $user@$admin:~/worker
@@ -113,8 +119,8 @@ EOF
 echo -e " \033[32;5mManager1 Completed\033[0m"
 
 # Step 2: Set variables
-managerToken='cat manager'
-workerToken='cat worker'
+managerToken=`cat manager`
+workerToken=`cat worker`
 
 # Step 3: Connect additional managers
 for newnode in "${managers[@]}"; do
