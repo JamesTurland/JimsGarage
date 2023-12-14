@@ -28,6 +28,10 @@ manager3=192.168.3.23
 worker1=192.168.3.24
 worker2=192.168.3.25
 
+# Set the workers' hostnames (if using cloud-init in Proxmox it's the name of the VM)
+workerHostname1=dockerSwarm-04
+workerHostname2=dockerSwarm-05
+
 # User of remote machines
 user=ubuntu
 
@@ -83,7 +87,7 @@ scp -i /home/$user/.ssh/$certName /home/$user/$certName $user@$manager1:~/.ssh
 scp -i /home/$user/.ssh/$certName /home/$user/$certName.pub $user@$manager1:~/.ssh
 
 
-# Install Docker for each node
+# Install dependencies for each node (Docker, GlusterFS)
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   # Add Docker's official GPG key:
@@ -100,6 +104,10 @@ for newnode in "${all[@]}"; do
     tee /etc/apt/sources.list.d/docker.list > /dev/null
   apt-get update
   NEEDRESTART_MODE=a apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+  NEEDRESTART_MODE=a apt install software-properties-common glusterfs-server -y
+  systemctl start glusterd
+  systemctl enable glusterd
+  mkdir -p /gluster/volume1
   exit
 EOF
   echo -e " \033[32;5mDocker installed!\033[0m"
@@ -143,3 +151,38 @@ for newnode in "${workers[@]}"; do
 EOF
   echo -e " \033[32;5mWorker node joined successfully!\033[0m"
 done
+
+# Step 5: Create GlusterFS Cluster across all nodes (connect to Manager1) - we will also label our nodes to restrict deployment of services to workers only
+ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
+gluster volume create staging-gfs replica 5 $master1:/gluster/volume1 $master2:/gluster/volume1 $master3:/gluster/volume1 $worker1:/gluster/volume1 $worker2:/gluster/volume1 force
+gluster volume start staging-gfs
+chmod 666 /var/run/docker.sock
+docker node update --label-add worker=true $workerHostname1
+docker node update --label-add worker=true $workerHostname2
+gluster gluster peer probe $master2; gluster peer probe $master3; gluster peer probe $worker1; gluster peer probe $worker2;
+exit
+EOF
+echo -e " \033[32;5mGlusterFS created\033[0m"
+
+# Step 6: Connect to all machines to ensure that GlusterFS mount restarts after boot
+for newnode in "${all[@]}"; do
+  ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  echo 'localhost:/staging-gfs /mnt glusterfs defaults,_netdev,backupvolfile-server=localhost 0 0' >> /etc/fstab
+  mount.glusterfs localhost:/staging-gfs /mnt
+  chown -R root:docker /mnt
+  exit
+EOF
+  echo -e " \033[32;5mGlusterFS mounted on reboot\033[0m"
+done
+
+# OPTIONAL #
+# Step 7: Add Portainer
+ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
+curl -L https://downloads.portainer.io/ce2-19/portainer-agent-stack.yml -o portainer-agent-stack.yml
+docker stack deploy -c portainer-agent-stack.yml portainer
+docker node ls
+docker service ls
+gluster pool list
+exit
+EOF
+echo -e " \033[32;5mGlusterFS created\033[0m"
