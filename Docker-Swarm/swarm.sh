@@ -110,7 +110,7 @@ for newnode in "${all[@]}"; do
   mkdir -p /gluster/volume1
   exit
 EOF
-  echo -e " \033[32;5mDocker installed!\033[0m"
+  echo -e " \033[32;5m$newnode - Docker & GlusterFS installed!\033[0m"
 done
 
 # Step 1: Create Swarm on first node
@@ -138,7 +138,7 @@ for newnode in "${managers[@]}"; do
   $manager1
   exit
 EOF
-  echo -e " \033[32;5mManager node joined successfully!\033[0m"
+  echo -e " \033[32;5m$newnode - Manager node joined successfully!\033[0m"
 done
 
 # Step 4: Connect additional worker
@@ -149,7 +149,7 @@ for newnode in "${workers[@]}"; do
   $manager1
   exit
 EOF
-  echo -e " \033[32;5mWorker node joined successfully!\033[0m"
+  echo -e " \033[32;5m$newnode - Worker node joined successfully!\033[0m"
 done
 
 # Step 5: Create GlusterFS Cluster across all nodes (connect to Manager1) - we will also label our nodes to restrict deployment of services to workers only
@@ -172,7 +172,7 @@ for newnode in "${all[@]}"; do
   chown -R root:docker /mnt
   exit
 EOF
-  echo -e " \033[32;5mGlusterFS mounted on reboot\033[0m"
+  echo -e " \033[32;5m$newnode - GlusterFS mounted on reboot\033[0m"
 done
 
 # OPTIONAL #
@@ -185,4 +185,4 @@ docker service ls
 gluster pool list
 exit
 EOF
-echo -e " \033[32;5mGlusterFS created\033[0m"
+echo -e " \033[32;5mPortainer deployed\033[0m"
