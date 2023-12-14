@@ -159,7 +159,7 @@ gluster volume start staging-gfs
 chmod 666 /var/run/docker.sock
 docker node update --label-add worker=true $workerHostname1
 docker node update --label-add worker=true $workerHostname2
-gluster gluster peer probe $master2; gluster peer probe $master3; gluster peer probe $worker1; gluster peer probe $worker2;
+gluster peer probe $master2; gluster peer probe $master3; gluster peer probe $worker1; gluster peer probe $worker2;
 exit
 EOF
 echo -e " \033[32;5mGlusterFS created\033[0m"
