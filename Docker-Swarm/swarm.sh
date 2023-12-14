@@ -154,12 +154,12 @@ done
 
 # Step 5: Create GlusterFS Cluster across all nodes (connect to Manager1) - we will also label our nodes to restrict deployment of services to workers only
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
+gluster peer probe $manager1; gluster peer probe $manager2; gluster peer probe $manager3; gluster peer probe $worker1; gluster peer probe $worker2;
 gluster volume create staging-gfs replica 5 $manager1:/gluster/volume1 $manager2:/gluster/volume1 $manager3:/gluster/volume1 $worker1:/gluster/volume1 $worker2:/gluster/volume1 force
 gluster volume start staging-gfs
 chmod 666 /var/run/docker.sock
 docker node update --label-add worker=true $workerHostname1
 docker node update --label-add worker=true $workerHostname2
-gluster peer probe $manager2; gluster peer probe $manager3; gluster peer probe $worker1; gluster peer probe $worker2;
 exit
 EOF
 echo -e " \033[32;5mGlusterFS created\033[0m"
