@@ -171,6 +171,7 @@ done
 # OPTIONAL #
 # Step 7: Add Portainer
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
+mkdir /mnt/Portainer
 curl -L https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Docker-Swarm/portainer-agent-stack.yml -o portainer-agent-stack.yml
 docker stack deploy -c portainer-agent-stack.yml portainer
 docker node ls
