@@ -38,26 +38,17 @@ user=ubuntu
 # Interface used on remotes
 interface=eth0
 
-# Set the virtual IP address (VIP)
-vip=192.168.3.50
-
 # Array of all manager nodes
 allmanagers=($manager1 $manager2 $manager3)
 
-# Array of manager nodes
-managers=($manager2 $manager3)
+# Array of extra managers
+$managers=($manager2 $manager3)
 
 # Array of worker nodes
 workers=($worker1 $worker2)
 
 # Array of all
 all=($manager1 $manager2 $manager3 $worker1 $worker2)
-
-# Array of all minus manager1
-allnomanager1=($manager2 $manager3 $worker1 $worker2)
-
-#Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
 
 #ssh certificate name variable
 certName=id_rsa
@@ -90,6 +81,8 @@ scp -i /home/$user/.ssh/$certName /home/$user/$certName.pub $user@$manager1:~/.s
 # Install dependencies for each node (Docker, GlusterFS)
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  iptables -F    
+  iptables -P INPUT ACCEPT  
   # Add Docker's official GPG key:
   apt-get update
   NEEDRESTART_MODE=a apt install ca-certificates curl gnupg -y
