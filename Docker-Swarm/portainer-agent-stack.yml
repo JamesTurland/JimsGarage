@@ -21,7 +21,9 @@ services:
       - "9000:9000"
       - "8000:8000"
     volumes:
-      - /mnt/Portainer:/data
+      - type: bind
+        source: /mnt/Portainer
+        target: /data
     networks:
       - agent_network
     deploy:
