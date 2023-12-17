@@ -42,7 +42,7 @@ interface=eth0
 allmanagers=($manager1 $manager2 $manager3)
 
 # Array of extra managers
-$managers=($manager2 $manager3)
+managers=($manager2 $manager3)
 
 # Array of worker nodes
 workers=($worker1 $worker2)
@@ -171,7 +171,7 @@ done
 # OPTIONAL #
 # Step 7: Add Portainer
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
-curl -L https://downloads.portainer.io/ce2-19/portainer-agent-stack.yml -o portainer-agent-stack.yml
+curl -L https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Docker-Swarm/portainer-agent-stack.yml -o portainer-agent-stack.yml
 docker stack deploy -c portainer-agent-stack.yml portainer
 docker node ls
 docker service ls
