@@ -1,0 +1,26 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  creationTimestamp: '2024-01-02T15:45:45Z'
+  generation: 1
+  managedFields:
+    - apiVersion: traefik.containo.us/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:spec:
+          .: {}
+          f:redirectRegex:
+            .: {}
+            f:regex: {}
+            f:replacement: {}
+      manager: rancher
+      operation: Update
+      time: '2024-01-02T15:45:45Z'
+  name: pihole-redirect
+  namespace: pihole
+  resourceVersion: '849681'
+  uid: 22f3be2e-1fcf-4a8c-973e-0a89ccc41bdf
+spec:
+  redirectRegex:
+    regex: ^https?://yourdomain.com/$ # update to your pihole domain. Only replace "yourdomain.com"
+    replacement: https://yourdomain.com/admin/ # update to your pihole domain. Only replace "yourdomain.com"
