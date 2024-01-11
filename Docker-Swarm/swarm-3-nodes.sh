@@ -38,9 +38,6 @@ user=ubuntu
 # Interface used on remotes
 interface=eth0
 
-# Set the virtual IP address (VIP)
-vip=192.168.3.50
-
 # Array of all manager nodes
 allmanagers=($manager1 $manager2 $manager3)
 
@@ -52,12 +49,6 @@ workers=($worker1 $worker2)
 
 # Array of all
 all=($manager1 $worker1 $worker2)
-
-# Array of all minus manager1
-allnomanager1=($manager2 $manager3 $worker1 $worker2)
-
-#Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
 
 #ssh certificate name variable
 certName=id_rsa
@@ -132,9 +123,7 @@ echo -e " \033[32;5mManager1 Completed\033[0m"
 managerToken=`cat manager`
 workerToken=`cat worker`
 
-
-
-# Step 4: Connect additional worker
+# Step 3: Connect additional worker
 for newnode in "${workers[@]}"; do
   ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   docker swarm join \
@@ -145,7 +134,7 @@ EOF
   echo -e " \033[32;5m$newnode - Worker node joined successfully!\033[0m"
 done
 
-# Step 5: Create GlusterFS Cluster across all nodes (connect to Manager1) - we will also label our nodes to restrict deployment of services to workers only
+# Step 4: Create GlusterFS Cluster across all nodes (connect to Manager1) - we will also label our nodes to restrict deployment of services to workers only
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
 gluster peer probe $manager1; gluster peer probe $worker1; gluster peer probe $worker2;
 gluster volume create staging-gfs replica 3 $manager1:/gluster/volume1 $worker1:/gluster/volume1 $worker2:/gluster/volume1 force
@@ -157,7 +146,7 @@ exit
 EOF
 echo -e " \033[32;5mGlusterFS created\033[0m"
 
-# Step 6: Connect to all machines to ensure that GlusterFS mount restarts after boot
+# Step 5: Connect to all machines to ensure that GlusterFS mount restarts after boot
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   echo 'localhost:/staging-gfs /mnt glusterfs defaults,_netdev,backupvolfile-server=localhost 0 0' >> /etc/fstab
@@ -169,9 +158,10 @@ EOF
 done
 
 # OPTIONAL #
-# Step 7: Add Portainer
+# Step 6: Add Portainer
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
-curl -L https://downloads.portainer.io/ce2-19/portainer-agent-stack.yml -o portainer-agent-stack.yml
+mkdir /mnt/Portainer
+curl -L https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Docker-Swarm/portainer-agent-stack.yml -o portainer-agent-stack.yml
 docker stack deploy -c portainer-agent-stack.yml portainer
 docker node ls
 docker service ls
