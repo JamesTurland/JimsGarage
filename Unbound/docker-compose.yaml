@@ -24,10 +24,9 @@ services:
     - "85:80/tcp"
     #- "443:443/tcp"
     environment:
-    - 'TZ=Europe/London'
-    - 'WEBPASSWORD=password'
-    - 'DNS1=172.23.0.8#5053'
-    - 'DNS2=no'
+    - TZ: 'Europe/London'
+    - WEBPASSWORD: 'password'
+    - PIHOLE_DNS_: '172.23.0.8#5053'
     volumes:
     - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
     - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
