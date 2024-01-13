@@ -108,7 +108,7 @@ done
 
 # Step 1: Create Swarm on first node
 ssh -tt $user@$manager1 -i ~/.ssh/$certName sudo su <<EOF
-docker swarm init --advertise-addr $manager1
+docker swarm init --advertise-addr $manager1 --default-addr-pool 10.20.0.0/16 --default-addr-pool-mask-length 26
 docker swarm join-token manager | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' > manager.txt
 docker swarm join-token worker | sed -n 3p | grep -Po 'docker swarm join --token \\K[^\\s]*' > worker.txt
 echo "StrictHostKeyChecking no" > ~/.ssh/config
