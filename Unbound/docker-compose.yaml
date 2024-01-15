@@ -50,8 +50,8 @@ services:
       dns_net:
         ipv4_address: 172.23.0.8
     volumes:
-    - /home/ubuntu/docker/unbound:/opt/unbound/etc/unbound
+      - /home/ubuntu/docker/unbound:/opt/unbound/etc/unbound
     ports:
-    - "5053:53/tcp"
-    - "5053:53/udp"
+      - "5053:53/tcp"
+      - "5053:53/udp"
     restart: unless-stopped
