@@ -13,23 +13,23 @@ services:
   pihole:
     container_name: pihole
     hostname: pihole
-    image: pihole/pihole:latest
+    image: pihole/pihole:latest # remember to change this if you're using rpi
     networks:
       dns_net:
         ipv4_address: 172.23.0.7
       proxy:
     ports:
-    - "53:53/tcp"
-    - "53:53/udp"
-    - "85:80/tcp"
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "85:80/tcp"
     #- "443:443/tcp"
     environment:
-    - TZ: 'Europe/London'
-    - WEBPASSWORD: 'password'
-    - PIHOLE_DNS_: '172.23.0.8#5053'
+      TZ: 'Europe/London'
+      WEBPASSWORD: 'password'
+      PIHOLE_DNS_: '172.23.0.8#5053'
     volumes:
-    - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
-    - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+      - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
+      - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -45,7 +45,7 @@ services:
       - "traefik.docker.network=proxy"
   unbound:
     container_name: unbound
-    image: mvance/unbound:latest
+    image: mvance/unbound:latest # remember to change this if you're using rpi
     networks:
       dns_net:
         ipv4_address: 172.23.0.8
