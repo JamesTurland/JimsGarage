@@ -54,4 +54,6 @@ services:
     ports:
       - "5053:53/tcp"
       - "5053:53/udp"
+    healthcheck:
+      test: ["NONE"]
     restart: unless-stopped
