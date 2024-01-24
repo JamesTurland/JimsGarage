@@ -209,13 +209,50 @@ kubectl get pods --all-namespaces -o wide
 
 echo -e " \033[32;5mHappy Kubing! Access Nginx at EXTERNAL-IP above\033[0m"
 
-# Step 11: Install Longhorn (using modified Official to pin to Longhorn Nodes)
+# Step 11: Install helm
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+
+# Step 12: Add Rancher Helm Repository
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+kubectl create namespace cattle-system
+
+# Step 13: Install Cert-Manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install cert-manager jetstack/cert-manager \
+--namespace cert-manager \
+--create-namespace \
+--version v1.13.2
+kubectl get pods --namespace cert-manager
+
+# Step 14: Install Rancher
+helm install rancher rancher-latest/rancher \
+ --namespace cattle-system \
+ --set hostname=rancher.my.org \
+ --set bootstrapPassword=admin
+kubectl -n cattle-system rollout status deploy/rancher
+kubectl -n cattle-system get deploy rancher
+
+# Step 15: Expose Rancher via Loadbalancer
+kubectl get svc -n cattle-system
+kubectl expose deployment rancher --name=rancher-lb --port=443 --type=LoadBalancer -n cattle-system
+kubectl get svc -n cattle-system
+
+# Profit: Go to Rancher GUI
+echo -e " \033[32;5mHit the url… and create your account\033[0m"
+echo -e " \033[32;5mBe patient as it downloads and configures a number of pods in the background to support the UI (can be 5-10mins)\033[0m"
+
+# Step 16: Install Longhorn (using modified Official to pin to Longhorn Nodes)
+echo -e " \033[32;5mInstalling Longhorn - It can take a while for all pods to deploy...\033[0m"
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
 kubectl get pods \
 --namespace longhorn-system \
 --watch
 
-# Step 12: Print out confirmation
+# Step 17: Print out confirmation
 
 kubectl get nodes
 kubectl get svc -n longhorn-system
