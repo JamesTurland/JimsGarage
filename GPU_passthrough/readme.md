@@ -13,6 +13,8 @@ nano /etc/default/grub
 
 `GRUB_CMDLINE_LINUX_DEFAULT="quiet amd_iommu=on"`
 
+Verify that IOMMU is enabled by running `dmesg | grep -e DMAR -e IOMMU` and looking for a line indicating it is enabled
+
 Save and exit
 
 4) run the command `"update-grub"` now reboot
