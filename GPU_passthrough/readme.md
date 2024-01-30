@@ -32,7 +32,9 @@ Then, save and exit
 
 6) `update-initramfs -u -k all` and reboot
 
-7) GPU Isolation From the Host (amend the below to include the IDs of the device you want to isolate)
+Verify the modules are enabled with `dmesg | grep -i vfio` and checking the driver version line is present
+
+8) GPU Isolation From the Host (amend the below to include the IDs of the device you want to isolate)
 
 `echo "options vfio-pci ids=10de:1381,10de:0fbc disable_vga=1" > /etc/modprobe.d/vfio.conf`
 
