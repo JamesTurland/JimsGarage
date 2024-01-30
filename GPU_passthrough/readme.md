@@ -47,6 +47,9 @@ echo "blacklist nvidiafb" >> /etc/modprobe.d/blacklist.conf
 echo "blacklist nvidia_drm" >> /etc/modprobe.d/blacklist.conf
 ```
 
+Reboot your machine, be sure to use the web gui because with the gpu passed through you will no longer get video out.
+The start up will begin but then appear to hang even though proxmox has started fine.
+
 9) Create a new VM and add the GPU via hardware menu
 You may need to set it as primary GPU
 You may need to add a ROM BAR
