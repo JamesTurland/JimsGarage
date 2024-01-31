@@ -1,0 +1,28 @@
+name: samba
+
+services:
+  samba:
+    image: crazymax/samba
+    container_name: samba
+    network_mode: host
+    volumes:
+      - "./data:/data" # Contains cache, configuration and runtime data
+      - "/smb:/samba/public"
+    #  - "./share:/samba/share" - optional additional share - see config.yml for permissions
+    #  - "./foo:/samba/foo" - optional additional share - see config.yml for permissions
+    #  - "./foo-baz:/samba/foo-baz" - optional additional share - see config.yml for permissions
+    environment:
+      - "TZ=Europe/London"
+    #  - "CONFIG_FILE=/your-location" this can be anywhere you want. Default is /data
+    #  - "SAMBA_WORKGROUP=WORKGROUP" change to your workgroup, default it WORKGROUP
+    #  - "SAMBA_SERVER_STRING=some string" is the equivalent of the NT Description field
+      - "SAMBA_LOG_LEVEL=0"
+    #  - "SAMBA_FOLLOW_SYMLINKS=NO" default is yes
+    #  - "SAMBA_WIDE_LINKS=NO" default is yes
+    #  - "SAMBA_HOSTS_ALLOW=0.0.0.0/0" default 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    #  - "SAMBA_INTERFACES=some-interface" default all
+    #  - "WSDD2_ENABLE=1" default is 0
+    #  - "WSDD2_HOSTNAME=string" Override hostname (default to host or container name)
+    #  - "WSDD2_NETBIOS_NAME=some-name" Set NetBIOS name (default to hostname)
+    #  - "WSDD2_INTERFANCE=interface-name" Reply only on this interface
+    restart: always

@@ -47,7 +47,7 @@ spec:
         - name: vip_ddns
           value: "false"
         - name: svc_enable
-          value: "true"
+          value: "false"
         - name: svc_leasename
           value: plndr-svcs-lock
         - name: vip_leaderelection

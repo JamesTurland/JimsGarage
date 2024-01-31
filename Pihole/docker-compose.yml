@@ -41,8 +41,7 @@ services:
     environment:
       TZ: 'Europe/London'
       WEBPASSWORD: 'password'
-      DNS1: '172.70.9.2#5053'
-      DNS2: 'no'
+      PIHOLE_DNS_: '172.70.9.2#5053'
       DNSMASQ_LISTENING: 'all'
       VIRTUAL_HOST: pihole.yourdomain.com
     # Volumes store your data between container upgrades

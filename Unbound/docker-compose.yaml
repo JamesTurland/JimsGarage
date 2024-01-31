@@ -1,0 +1,59 @@
+version: '3'
+
+networks:
+  dns_net:
+    driver: bridge
+    ipam:
+        config:
+        - subnet: 172.23.0.0/16
+  proxy:
+    external: true
+
+services:
+  pihole:
+    container_name: pihole
+    hostname: pihole
+    image: pihole/pihole:latest # remember to change this if you're using rpi
+    networks:
+      dns_net:
+        ipv4_address: 172.23.0.7
+      proxy:
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "85:80/tcp"
+    #- "443:443/tcp"
+    environment:
+      TZ: 'Europe/London'
+      WEBPASSWORD: 'password'
+      PIHOLE_DNS_: '172.23.0.8#5053'
+    volumes:
+      - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
+      - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.entrypoints=http"
+      - "traefik.http.routers.pihole.rule=Host(`pihole.yourdomain.com`)"
+      - "traefik.http.middlewares.pihole-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pihole.middlewares=pihole-https-redirect"
+      - "traefik.http.routers.pihole-secure.entrypoints=https"
+      - "traefik.http.routers.pihole-secure.rule=Host(`pihole.yourdomain.com`)"
+      - "traefik.http.routers.pihole-secure.tls=true"
+      - "traefik.http.routers.pihole-secure.service=pihole"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+  unbound:
+    container_name: unbound
+    image: mvance/unbound:latest # remember to change this if you're using rpi
+    networks:
+      dns_net:
+        ipv4_address: 172.23.0.8
+    volumes:
+      - /home/ubuntu/docker/unbound:/opt/unbound/etc/unbound
+    ports:
+      - "5053:53/tcp"
+      - "5053:53/udp"
+    healthcheck:
+      test: ["NONE"]
+    restart: unless-stopped
