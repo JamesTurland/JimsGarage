@@ -35,8 +35,8 @@ rootfs: local-lvm:vm-104-disk-0,size=20G
 swap: 512
 unprivileged: 1
 lxc.cgroup2.devices.allow: c 226:0 rwm
-lxc.cgroup2.devices.allow: c 226:129 rwm
-lxc.mount.entry: /dev/dri/renderD129 dev/dri/renderD129 none bind,optional,create=file
+lxc.cgroup2.devices.allow: c 226:128 rwm
+lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
 lxc.idmap: u 0 100000 65536
 lxc.idmap: g 0 100000 44
 lxc.idmap: g 44 44 1
