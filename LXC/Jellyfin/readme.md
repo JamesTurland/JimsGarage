@@ -8,10 +8,10 @@ ls -l /dev/dri
 cat /etc/group
 ```
 
-# Add Group Numbers Values to subguid
+# Add Group Numbers Values to subgid
 Change values to map the to above ^^
 ```
-nano /etc/subguid
+nano /etc/subgid
 ```
 Paste at the bottom, for example:
 ```
