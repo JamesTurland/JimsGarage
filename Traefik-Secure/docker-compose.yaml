@@ -29,18 +29,20 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik.entrypoints=http" # restricts dashboard to internal entrypoint
-      - "traefik.http.routers.traefik.rule=Host(`traefik-docker.yourdomain.com`)"
+      - "traefik.http.routers.traefik.rule=Host(`traefik-dashboard.yourdomain.co.uk`)" # if you want a internal domain, get the wildcard cert for it and then choos traefik-dashboard.home.yourdomain.co.uk or what you want
       - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:password-hash"
       - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
       - "traefik.http.routers.traefik-secure.entrypoints=https"
-      - "traefik.http.routers.traefik-secure.rule=Host(`traefik-docker.yourdomain.com`)"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik-dashboard.yourdomain.co.uk`)" # if you want a internal domain, get the wildcard cert for it and then choos traefik-dashboard.home.yourdomain.co.uk or what you want
       - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
       - "traefik.http.routers.traefik-secure.tls=true"
       - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
-      - "traefik.http.routers.traefik-secure.tls.domains[0].main=yourdomain.co.uk"
-      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.yourdomain.co.uk"
+      #- "traefik.http.routers.traefik-secure.tls.domains[0].main=home.yourdomain.co.uk" # If you want *.home.yourdomain.co.uk subdomain or something else, you have to get the certifcates at first
+      #- "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.home.yourdomain.co.uk" # get a wildcard certificat for your .home.yourdomain.co.uk
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=yourdomain.co.uk" #if you use the .home.yourdomain.co.uk entry you have to change the [0] into [1]
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.yourdomain.co.uk" # same here, change 0 to 1
       - "traefik.http.routers.traefik-secure.service=api@internal"
 
 networks:
