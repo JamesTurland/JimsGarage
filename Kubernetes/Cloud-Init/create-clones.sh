@@ -24,6 +24,7 @@ function run() {
     print_info # Prints information about what will be created based on defaults/user inputs
     setup      # Do not worry it asks for confirmation before the setup/installation starts
     start_vms  # You can choose to start all VMs if you want
+    print_vm_status
 }
 
 function get_user_variables() {
@@ -107,6 +108,9 @@ function setup() {
     case $yesno in
     [Yy]*)
         create_vms
+        print_vm_status
+
+        echo -e "\n\e[94;43;5mMake any needed updates to DHCP reservations now...\e[0m\n"
         ;;
     [Nn]*)
         echo -e "\e[31mInstallation aborted by user. No changes were made.\e[0m"
@@ -139,8 +143,6 @@ function create_vms() {
             ;;
         *) ;;
         esac
-
-        print_vm_status
     done
 }
 
@@ -168,10 +170,6 @@ function start_vms() {
             echo -e "\e[1A\e[K\e[33mWaiting for VMs to start...($i s)\e[0m"
             sleep 1
         done
-
-        print_vm_status
-
-        echo -e "\n\e[94;43;5mMake any needed updates to DHCP reservations now...\e[0m\n"
 
         restart_vms
         ;;
@@ -203,8 +201,6 @@ function restart_vms() {
             echo -e "\e[1A\e[K\e[33mWaiting for VMs to start...($i s)\e[0m"
             sleep 1
         done
-
-        print_vm_status
         ;;
     [Nn]*)
         exit
@@ -226,8 +222,8 @@ function print_vm_status() {
             printf "%18.18s" "$name-$idx"
             echo -n "  | $(cat /etc/pve/qemu-server/$(($id + $i - 1)).conf | grep virtio | grep net | cut -c 14-30) |  "
             qm status $(($id + $i - 1)) | sed 's/status: //'
-            echo -e "\n\n"
         done
+        echo -e "\n\n"
 }
 
 #########################
