@@ -4,9 +4,13 @@ services:
   server:
     image: gitea/gitea:1.21.4
     container_name: gitea
+    ports:
+      - "222:22"
     environment:
       - USER_UID=1000
       - USER_GID=1000
+      - SSH_PORT=222
+      - SSH_LISTEN_PORT=22
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=db:5432
       - GITEA__database__NAME=gitea
