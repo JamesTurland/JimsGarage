@@ -19,7 +19,8 @@ services:
       - postgresql
     environment:
       - KC_PROXY_ADDRESS_FORWARDING=true
-      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT=true
+      - KC_HOSTNAME_ADMIN_URL=https://keycloak.jimsgarage.co.uk
       - KC_HOSTNAME=keycloak.jimsgarage.co.uk
       - KC_PROXY=edge
       - KC_HTTP_ENABLED=true
