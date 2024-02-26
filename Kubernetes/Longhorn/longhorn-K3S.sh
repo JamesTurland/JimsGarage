@@ -20,41 +20,45 @@ echo -e " \033[32;2m                                                           \
 # YOU SHOULD ONLY NEED TO EDIT THIS SECTION #
 #############################################
 # Set the IP addresses of master1
-master1=192.168.3.21
 
-# Set the IP addresses of your Longhorn nodes
-longhorn1=192.168.3.26
-longhorn2=192.168.3.27
-longhorn3=192.168.3.28
+master1=10.0.5.1
+
+# Array of longhorn nodes
+
+storage=(10.0.5.21 10.0.5.22 10.0.5.23)
 
 # User of remote machines
-user=ubuntu
+
+user=bones
 
 # Interface used on remotes
+
 interface=eth0
 
 # Set the virtual IP address (VIP)
-vip=192.168.3.50
 
-# Array of longhorn nodes
-storage=($longhorn1 $longhorn2 $longhorn3)
+vip=10.0.5.20
 
-#ssh certificate name variable
-certName=id_rsa
+# Ssh certificate name variable
+
+certName=id_ed25519
 
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
+
 # For testing purposes - in case time is wrong due to VM snapshots
+
 sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # add ssh keys for all nodes
-for node in "${storage[@]}"; do
-  ssh-copy-id $user@$node
-done
+#for node in "${storage[@]}"; do
+#  ssh-copy-id $user@$node
+#done
 
-# add open-iscsi - needed for Debian and non-cloud Ubuntu
+# Add open-iscsi - needed for Debian and non-cloud Ubuntu
+
 if ! command -v sudo service open-iscsi status &> /dev/null
 then
     echo -e " \033[31;5mOpen-ISCSI not found, installing\033[0m"
@@ -64,6 +68,7 @@ else
 fi
 
 # Step 1: Add new longhorn nodes to cluster (note: label added)
+
 for newnode in "${storage[@]}"; do
   k3sup join \
     --ip $newnode \
@@ -77,7 +82,9 @@ for newnode in "${storage[@]}"; do
 done
 
 # Step 2: Install Longhorn (using modified Official to pin to Longhorn Nodes)
-kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
+
+kubectl apply -f longhorn.yaml
+
 kubectl get pods \
 --namespace longhorn-system \
 --watch

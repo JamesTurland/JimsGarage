@@ -26,7 +26,7 @@ KVVERSION="v0.7.0"
 
 # K3S Version
 
-k3sVersion="v1.29.1+k3s2"
+k3sVersion="v1.27.10+k3s2"
 
 # Set the IP addresses of the master and worker nodes.
 
