@@ -133,6 +133,8 @@ scp -i ~/.ssh/"$certName" "$HOME"/kube-vip.yaml "$user"@"$master1":~/kube-vip.ya
 ssh "$user"@"$master1" -i ~/.ssh/"$certName" <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+  sudo chown root:root /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+  sudo chmod 600 /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 EOF
 
 # Update local kubectl config with VIP
