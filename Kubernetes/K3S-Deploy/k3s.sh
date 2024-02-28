@@ -177,8 +177,7 @@ for newagent in "${workers[@]}"; do
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
-# Step 7: Install Metallb
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+# Step 7: Install MetalLB as the service load balancer
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
