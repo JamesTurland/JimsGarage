@@ -119,18 +119,17 @@ k3sup install \
   --context k3s-ha
 echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 
-# Step 2: Install Kube-VIP for HA
+# Step 2: Install Kube-VIP for HA - Set up RBAC permissions
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
-# Step 3: Download kube-vip
+# Step 3: Install Kube-VIP for HA - Download kube-vip manifest
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip
 sed "s/REPLACE_INTERFACE/$interface/g; s/REPLACE_VIP/$vip/g" kube-vip > "$HOME"/kube-vip.yaml
 
-# Step 4: Copy kube-vip.yaml to master1
+# Step 4: Install Kube-VIP for HA - Copy kube-vip.yaml to master1
 scp -i ~/.ssh/"$certName" "$HOME"/kube-vip.yaml "$user"@"$master1":~/kube-vip.yaml
 
-
-# Step 5: Connect to Master1 and move kube-vip.yaml
+# Step 5: Install Kube-VIP for HA - Connect to Master1 and move kube-vip.yaml
 ssh "$user"@"$master1" -i ~/.ssh/"$certName" <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
