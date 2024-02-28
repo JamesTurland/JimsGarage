@@ -138,8 +138,7 @@ ssh "$user"@"$master1" -i ~/.ssh/"$certName" <<- EOF
 EOF
 
 # Update local kubectl config with VIP
-kubectlDirectory=$([[ -n "$KUBECONFIG" ]] && echo "$KUBECONFIG" || echo "$HOME/.kube/config")
-sed -i "s/$master1/$vip/g" "$kubectlDirectory"
+sed -i "s/$master1/$vip/g" "$HOME"/.kube/config
 
 # Step 6: Add new master nodes (servers) & workers
 for newnode in "${masters[@]}"; do
