@@ -164,10 +164,7 @@ for newagent in "${workers[@]}"; do
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
-# Step 7: Install kube-vip as network LoadBalancer - Install the kube-vip Cloud Provider
-kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
-
-# Step 8: Install Metallb
+# Step 7: Install Metallb
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
@@ -175,7 +172,7 @@ curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernet
 sed "s/REPLACE_LBRANGE/$lbrange/g" ipAddressPool > "$HOME"/ipAddressPool.yaml
 kubectl apply -f "$HOME"/ipAddressPool.yaml
 
-# Step 9: Test with Nginx
+# Step 8: Test with Nginx
 kubectl apply -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml -n default
 kubectl expose deployment nginx-1 --port=80 --type=LoadBalancer -n default
 
@@ -185,7 +182,7 @@ while [[ $(kubectl get pods -l app=nginx -o 'jsonpath={..status.conditions[?(@.t
    sleep 1
 done
 
-# Step 10: Deploy IP Pools and l2Advertisement
+# Step 9: Deploy IP Pools and l2Advertisement
 kubectl wait --namespace metallb-system \
                 --for=condition=ready pod \
                 --selector=component=controller \
