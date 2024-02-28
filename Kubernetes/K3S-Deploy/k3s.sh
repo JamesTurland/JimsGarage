@@ -154,6 +154,15 @@ for newnode in "${masters[@]}"; do
     --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
     --server-user "$user"
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
+
+  scp -i ~/.ssh/"$certName" "$HOME"/kube-vip.yaml "$user"@"$newnode":~/kube-vip.yaml
+ssh "$user"@"$newnode" -i ~/.ssh/"$certName" <<- EOF
+  sudo mkdir -p /var/lib/rancher/k3s/server/manifests
+  sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+  sudo chown root:root /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+  sudo chmod 600 /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+EOF
+
 done
 
 # add workers
