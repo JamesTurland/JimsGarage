@@ -37,7 +37,7 @@ spec:
         - name: port
           value: "6443"
         - name: vip_interface
-          value: $interface
+          value: REPLACE_INTERFACE
         - name: vip_cidr
           value: "32"
         - name: cp_enable
@@ -61,7 +61,7 @@ spec:
         - name: vip_retryperiod
           value: "1"
         - name: address
-          value: $vip
+          value: REPLACE_VIP
         - name: prometheus_server
           value: :2112
         image: ghcr.io/kube-vip/kube-vip:v0.6.3
