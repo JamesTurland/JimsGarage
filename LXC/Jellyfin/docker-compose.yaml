@@ -1,0 +1,25 @@
+version: "2"
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    group_add:
+      - '107'  # This needs to be the group id of your GPU, e.g., `stat -c '%g' /dev/dri/renderD128` on the docker host for iGPU
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - /films:/films
+     # - /home/ubuntu/YOUR_NAS/Films:/Films:ro
+     # - /home/ubuntu/YOUR_NAS/TVShows:/TVShows:ro
+     # - /home/ubuntu/YOUR_NAS/Audiobooks:/Audiobooks:ro
+     # - /home/ubuntu/YOUR_NAS/Music:/Music:ro
+    ports: # You will need to uncomment if you aren't running through a proxy
+      - 8096:8096
+      - 8920:8920 #optional
+      - 7359:7359/udp #optional
+      - 1900:1900/udp #optional
+    devices: # uncomment these and amend if you require GPU accelerated transcoding
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    restart: unless-stopped

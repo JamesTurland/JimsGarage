@@ -1,0 +1,106 @@
+- hosts: masters
+  gather_facts: false
+  become: true
+  ignore_unreachable: true
+  ignore_errors: false
+  serial: 1
+    tasks:
+
+##################################
+
+# Required to avoid the following bug:
+# https://github.com/ansible/ansible/issues/48352
+    - name: Allow release info change
+      lineinfile:
+        path: /etc/apt/apt.conf.d/99releaseinfochange
+        state: present
+        create: true
+        line: Acquire::AllowReleaseInfoChange::Suite "true";
+
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        update_cache: yes
+      become: true
+      register: apt
+
+    - name: Upgrade all packages to the latest version
+      become: true
+      apt:
+        name: "*"
+        state: latest
+        update_cache: false
+      register: appsupdated
+
+    - name: Remove useless packages from the cache
+      apt:
+        autoclean: yes
+      become: true
+
+    - name: Remove dependencies that are no longer required
+      apt:
+        autoremove: yes
+      become: true
+
+    - name: check for reboot file
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_file
+
+
+  ##################################
+
+    - name: drain node
+      become: false
+      kubernetes.core.k8s_drain:
+        state: drain
+        name: "{{ inventory_hostname }}"
+        delete_options:
+          ignore_daemonsets: true
+          delete_emptydir_data: true
+      delegate_to: localhost
+      when:
+        - appsupdated.changed
+        - reboot_file.stat.exists
+      register: nodedrained
+
+    - name: Pause for 1 minutes
+      ansible.builtin.pause:
+        minutes: 1
+      when: nodedrained.changed
+
+    - name: Reboot system if required
+      shell: ( /bin/sleep 5 ; shutdown -r now "Ansible updates triggered" ) &
+              removes=/var/run/reboot-required
+      ignore_errors: true
+      async: 30
+      poll: 0
+      notify:
+        - waiting for reboot
+      when: reboot_file.stat.exists
+
+    - name: Flush handlers
+      meta: flush_handlers
+
+    - name: Pause for 1 minutes
+      ansible.builtin.pause:
+        minutes: 1
+      when: nodedrained.changed
+
+    - name: uncordon node
+      become: false
+      kubernetes.core.k8s_drain:
+        state: uncordon
+        name: "{{ inventory_hostname }}"
+        delete_options:
+          ignore_daemonsets: true
+          delete_emptydir_data: true
+      delegate_to: localhost
+      when: nodedrained.changed| default(omit)
+
+    handlers:
+    - name: waiting for reboot
+      local_action: wait_for
+        host="{{ inventory_hostname }}"
+        port=2222
+        delay=10
+        timeout=120
