@@ -14,7 +14,7 @@ ansible all -m ping
 
 # Create SSH Key
 ```
-ssh keygen -t ed25519 -C "ansible"
+ssh-keygen -t ed25519 -C "ansible"
 ```
 
 # Copy SSH Key
