@@ -10,7 +10,7 @@
 
     - name: Check if a reboot is needed on all servers
       register: reboot_required_file
-      stat: path=/var/run/reboot-required get_checksum=false
+      stat: path=/var/run/reboot-required get_checksum=no
 
     - name: Reboot the box if kernel updated
       reboot:
