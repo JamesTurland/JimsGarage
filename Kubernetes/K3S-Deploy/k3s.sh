@@ -68,9 +68,10 @@ sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
-chmod 644 /home/$user/.ssh/$certName.pub
+# NAS - these were already copied over during install
+# cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
+# chmod 600 /home/$user/.ssh/$certName 
+# chmod 644 /home/$user/.ssh/$certName.pub
 
 # Install k3sup to local machine if not already present
 if ! command -v k3sup version &> /dev/null
@@ -96,9 +97,10 @@ fi
 echo "StrictHostKeyChecking no" > ~/.ssh/config
 
 #add ssh keys for all nodes
-for node in "${all[@]}"; do
-  ssh-copy-id $user@$node
-done
+# NAS - again, done already
+# for node in "${all[@]}"; do
+#   ssh-copy-id $user@$node
+# done
 
 # Install policycoreutils for each node
 for newnode in "${all[@]}"; do
