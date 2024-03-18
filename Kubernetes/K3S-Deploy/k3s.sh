@@ -63,9 +63,29 @@ certName=id_rsa
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
 # For testing purposes - in case time is wrong due to VM snapshots
-sudo timedatectl set-ntp off
-sudo timedatectl set-ntp on
+sudo systemctl restart systemd-timesyncd
+
+# Update and upgrade system packages, with lock mitigation support.
+attempt_limit=10
+attempt_delay_seconds=3
+for attempt in $(seq 1 $attempt_limit); do
+    if sudo apt-get update && sudo apt-get upgrade -y; then
+        echo "Package list updated and packages upgraded successfully."
+        break
+    else
+        echo "Attempt $attempt of $attempt_limit failed due to a lock. Retrying in $attempt_delay_seconds seconds..."
+        sleep $attempt_delay_seconds
+    fi
+done
+
+if [ "$attempt" -eq $attempt_limit ]; then
+    echo "Failed to update and upgrade packages within $attempt_limit attempts due to locking."
+    exit 1
+fi
 
 # Move SSH certs to ~/.ssh and change permissions
 cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
@@ -103,6 +123,7 @@ done
 # Install policycoreutils for each node
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  sudo systemctl restart systemd-timesyncd
   NEEDRESTART_MODE=a apt install policycoreutils -y
   exit
 EOF
@@ -176,6 +197,8 @@ kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provi
 # Step 8: Install Metallb
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+kubectl wait --for=condition=ready pod -l app=metallb --namespace=metallb-system --timeout=120s
+
 # Download ipAddressPool and configure using lbrange above
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
 cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
