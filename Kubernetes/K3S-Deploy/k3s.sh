@@ -21,10 +21,10 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.7.0"
+KVVERSION="v0.7.2"
 
 # K3S Version
-k3sVersion="v1.27.10+k3s2"
+k3sVersion="v1.27.11+k3s1"
 
 # Set the IP addresses of the master and work nodes
 master1=192.168.11.81
@@ -97,10 +97,9 @@ fi
 echo "StrictHostKeyChecking no" > ~/.ssh/config
 
 #add ssh keys for all nodes
-# NAS - again, done already
-# for node in "${all[@]}"; do
-#   ssh-copy-id $user@$node
-# done
+for node in "${all[@]}"; do
+  ssh-copy-id $user@$node
+done
 
 # Install policycoreutils for each node
 for newnode in "${all[@]}"; do
@@ -131,11 +130,12 @@ echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 
 # Step 3: Download kube-vip
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip
-cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' > $HOME/kube-vip.yaml
+# NAS - running this from our cloned repository; no need to download
+# curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip
+cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g; s/$KVVERSION'$KVVERSION'/g' > ./kube-vip.yaml
 
 # Step 4: Copy kube-vip.yaml to master1
-scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
+scp -i ~/.ssh/$certName ./kube-vip.yaml $user@$master1:~/kube-vip.yaml
 
 
 # Step 5: Connect to Master1 and move kube-vip.yaml
@@ -178,8 +178,9 @@ kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provi
 # Step 8: Install Metallb
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.3/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
-cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
+# NAS - running this from our cloned repository; no need to download
+# curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
+cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > ./ipAddressPool.yaml
 
 # Step 9: Test with Nginx
 kubectl apply -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml -n default
@@ -197,7 +198,9 @@ kubectl wait --namespace metallb-system \
                 --selector=component=controller \
                 --timeout=120s
 kubectl apply -f ipAddressPool.yaml
-kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/l2Advertisement.yaml
+# NAS - running this from our cloned repository; no need to download
+# kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/l2Advertisement.yaml
+kubectl apply -f l2Advertisement.yaml
 
 kubectl get nodes
 kubectl get svc
