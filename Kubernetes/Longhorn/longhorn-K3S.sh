@@ -19,13 +19,19 @@ echo -e " \033[32;2m                                                           \
 #############################################
 # YOU SHOULD ONLY NEED TO EDIT THIS SECTION #
 #############################################
+
+# K3S Version
+k3sVersion="v1.27.11+k3s1"
+
+longhornVersion="v1.5.3"
+
 # Set the IP addresses of master1
-master1=192.168.3.21
+master1=192.168.11.81
 
 # Set the IP addresses of your Longhorn nodes
-longhorn1=192.168.3.26
-longhorn2=192.168.3.27
-longhorn3=192.168.3.28
+longhorn1=192.168.11.86
+longhorn2=192.168.11.87
+longhorn3=192.168.11.88
 
 # User of remote machines
 user=ubuntu
@@ -34,7 +40,7 @@ user=ubuntu
 interface=eth0
 
 # Set the virtual IP address (VIP)
-vip=192.168.3.50
+vip=192.168.11.90
 
 # Array of longhorn nodes
 storage=($longhorn1 $longhorn2 $longhorn3)
@@ -69,7 +75,7 @@ for newnode in "${storage[@]}"; do
     --ip $newnode \
     --user $user \
     --sudo \
-    --k3s-channel stable \
+    --k3s-version $k3sVersion \
     --server-ip $master1 \
     --k3s-extra-args "--node-label \"longhorn=true\"" \
     --ssh-key $HOME/.ssh/$certName
@@ -77,7 +83,9 @@ for newnode in "${storage[@]}"; do
 done
 
 # Step 2: Install Longhorn (using modified Official to pin to Longhorn Nodes)
-kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
+# NAS - running this from our cloned repository; no need to download
+#kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
+kubectl apply -f longhorn-$longhornVersion.yaml
 kubectl get pods \
 --namespace longhorn-system \
 --watch
