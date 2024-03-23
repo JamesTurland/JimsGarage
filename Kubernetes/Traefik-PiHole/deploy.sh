@@ -19,22 +19,22 @@ echo -e " \033[32;2m                                                           \
 # and https://github.com/traefik/traefik-helm-chart
 
 # Step 0: Clone repository
-DESTINATION=~/Helm/Traefik
-if [ ! -d "`eval echo ${DESTINATION//>}`" ]; then
-    sudo apt install unzip -y
-    mkdir jimsgarage
-    mkdir Helm
-    mkdir Manifest
-    curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
-    unzip master.zip -d ~/jimsgarage
-    cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-PiHole/* ~/
-    rm master.zip
-    rm -r ~/jimsgarage
-    echo -e " \033[32;5mRepo cloned - EDIT FILES!!!\033[0m"
-    exit
-else
-    echo -e " \033[32;5mRepo already exists, continuing...\033[0m"
-fi
+# DESTINATION=~/Helm/Traefik
+# if [ ! -d "`eval echo ${DESTINATION//>}`" ]; then
+#     sudo apt install unzip -y
+#     mkdir jimsgarage
+#     mkdir Helm
+#     mkdir Manifest
+#     curl -L -o master.zip https://github.com/JamesTurland/JimsGarage/archive/refs/heads/main.zip
+#     unzip master.zip -d ~/jimsgarage
+#     cp -r ~/jimsgarage/JimsGarage-main/Kubernetes/Traefik-PiHole/* ~/
+#     rm master.zip
+#     rm -r ~/jimsgarage
+#     echo -e " \033[32;5mRepo cloned - EDIT FILES!!!\033[0m"
+#     exit
+# else
+#     echo -e " \033[32;5mRepo already exists, continuing...\033[0m"
+# fi
 
 # Step 1: Check dependencies
 # Helm
@@ -56,6 +56,14 @@ then
 else
     echo -e " \033[32;5mKubectl already installed\033[0m"
 fi
+# jq
+if ! command -v jq --version &> /dev/null
+then
+    echo -e " \033[31;5mJQ not found, installing\033[0m"
+    sudo apt install jq -y
+else
+    echo -e " \033[32;5mJQ already installed\033[0m"
+fi
 
 # Step 2: Add Helm Repos
 helm repo add traefik https://helm.traefik.io/traefik
@@ -64,26 +72,30 @@ helm repo add crowdsec https://crowdsecurity.github.io/helm-charts
 helm repo update
 
 # Step 3: Create Traefik namespace
-kubectl create namespace traefik
+namespaceStatus=$(kubectl get ns traefik -o json | jq .status.phase -r)
+if [ $namespaceStatus != "Active" ]
+then
+    kubectl create namespace traefik
+fi
 
 # Step 4: Install Traefik
-helm install --namespace=traefik traefik traefik/traefik -f ~/Helm/Traefik/values.yaml
+helm install --namespace=traefik traefik traefik/traefik -f ./Helm/Traefik/values.yaml
 
 # Step 5: Check Traefik deployment
 kubectl get svc -n traefik
 kubectl get pods -n traefik
 
 # Step 6: Apply Middleware
-kubectl apply -f ~/Helm/Traefik/default-headers.yaml
+kubectl apply -f ./Helm/Traefik/default-headers.yaml
 
 # Step 7: Create Secret for Traefik Dashboard
-kubectl apply -f ~/Helm/Traefik/Dashboard/secret-dashboard.yaml
+kubectl apply -f ./Helm/Traefik/Dashboard/secret-dashboard.yaml
 
 # Step 8: Apply Middleware
-kubectl apply -f ~/Helm/Traefik/Dashboard/middleware.yaml
+kubectl apply -f ./Helm/Traefik/Dashboard/middleware.yaml
 
 # Step 9: Apply Ingress to Access Service
-kubectl apply -f ~/Helm/Traefik/Dashboard/ingress.yaml
+kubectl apply -f ./Helm/Traefik/Dashboard/ingress.yaml
 
 # Step 10: Install Cert-Manager (should already have this with Rancher deployment)
 # Check if we already have it by querying namespace
@@ -96,7 +108,7 @@ then
     cert-manager \
     jetstack/cert-manager \
     --namespace cert-manager \
-    --values ~/Helm/Traefik/Cert-Manager/values.yaml
+    --values ./Helm/Traefik/Cert-Manager/values.yaml
 else
     echo "Cert-Manager is not present, installing..."
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
@@ -109,18 +121,18 @@ else
 fi
 
 # Step 11: Apply secret for certificate (Cloudflare)
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/secret-cf-token.yaml
+kubectl apply -f ./Helm/Traefik/Cert-Manager/Issuers/secret-cf-token.yaml
 
 # Step 12: Apply production certificate issuer (technically you should use the staging to test as per documentation)
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
+kubectl apply -f ./Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
 
 # Step 13: Apply production certificate
-kubectl apply -f ~/Helm/Traefik/Cert-Manager/Certificates/Production/jimsgarage-production.yaml
+kubectl apply -f ./Helm/Traefik/Cert-Manager/Certificates/Production/shoemakernet-production.yaml
 
 # Step 14: Create PiHole namespace
-kubectl create namespace pihole
+#kubectl create namespace pihole
 
 # Step 15: Deploy PiHole
-kubectl apply -f ~/Manifest/PiHole
+#kubectl apply -f ./Manifest/PiHole
 
 echo -e " \033[32;5mScript finished. Be sure to create PVC for PiHole in Longhorn UI\033[0m"

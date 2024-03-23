@@ -2,14 +2,14 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: jimsgarage # change to your domain
+  name: shoemakernet # change to your domain
   namespace: traefik # add to traefik namespace so it can use it (you DO NOT need it in each app namespace!!!)
 spec:
-  secretName: jimsgarage-tls # change to your secretname
+  secretName: shoemakernet-tls # change to your secretname
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
-  commonName: "*.jimsgarage.co.uk" # change to your domain
+  commonName: "*.shoe-maker.net" # change to your domain
   dnsNames:
-  - "*.jimsgarage.co.uk" # change to your domain
-  - jimsgarage.co.uk # change to your domain
+  - "*.shoe-maker.net" # change to your domain
+  - shoe-maker.net # change to your domain
