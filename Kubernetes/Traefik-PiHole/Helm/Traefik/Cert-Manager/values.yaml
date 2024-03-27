@@ -8,3 +8,8 @@ podDnsConfig:
   nameservers:
     - 1.1.1.1
     - 9.9.9.9
+
+tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
