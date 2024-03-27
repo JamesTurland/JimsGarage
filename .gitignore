@@ -2,6 +2,5 @@ Kubernetes/K3S-Deploy/kubectl
 Kubernetes/K3S-Deploy/kube-vip.yaml
 Kubernetes/K3S-Deploy/ipAddressPool.yaml
 Kubernetes/K3S-Deploy/k3sup
-Kubernetes/Traefik-PiHole/Helm/Traefik/Cert-Manager/Issuers/letsencrypt-production.yaml
 Kubernetes/Traefik-PiHole/Helm/Traefik/Cert-Manager/Issuers/secret-cf-token.yaml
 Kubernetes/Traefik-PiHole/Helm/Traefik/Dashboard/secret-dashboard.yaml
