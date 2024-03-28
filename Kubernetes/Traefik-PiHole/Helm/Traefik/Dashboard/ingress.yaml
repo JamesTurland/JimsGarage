@@ -9,13 +9,15 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`traefik2.jimsgarage.co.uk`) # change this to your domain
+    - match: Host(`traefik.local.shoe-maker.net`) # change this to your domain
       kind: Rule
       middlewares:
         - name: traefik-dashboard-basicauth
+          namespace: traefik
+        - name: default-headers
           namespace: traefik
       services:
         - name: api@internal
           kind: TraefikService
   tls:
-    secretName: jimsgarage-tls # change this to your secret!!!
+    secretName: traefik-local-shoemaker-net-tls # change this to your secret!!!
