@@ -94,7 +94,7 @@ function print_info() {
             echo -e ", MAC: ${custom_macs[$i-1]}\e[0m"
             ;;
         *)
-            echo "\e[0m"
+            echo "\e[32m\e[0m"
             ;;
         esac
     done
