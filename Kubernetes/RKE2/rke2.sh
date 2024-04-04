@@ -110,17 +110,18 @@ fi
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
-	ssh-copy-id $remoteuser@$node
+	ssh-copy-id "$remoteuser@$node"
 done
 
 # Step 1: Create Kube VIP
 # create RKE2's self-installing manifest dir
 sudo mkdir -p /var/lib/rancher/rke2/server/manifests
 # Install the kube-vip deployment into rke2's self-installing manifest folder
-curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip >$HOME/kube-vip.yaml
-sed -i 's/$interface/'$interface'/g; s/$vip/'$vip'/g' $HOME/kube-vip.yaml
+curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip >"$HOME/kube-vip.yaml"
+# shellcheck disable=SC2016
+sed -i 's/$interface/'$interface'/g; s/$vip/'$vip'/g' "$HOME/kube-vip.yaml"
 # Find/Replace all k3s entries to represent rke2
-sed -i 's/k3s/rke2/g' $HOME/kube-vip.yaml
+sed -i 's/k3s/rke2/g' "$HOME/kube-vip.yaml"
 sudo cp kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 
 # make kube folder to run kubectl later
@@ -155,13 +156,14 @@ source ~/.bashrc
 
 # Step 2: Copy kube-vip.yaml and certs to all masters
 for newnode in "${allmasters[@]}"; do
-	scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $remoteuser@$newnode:~/kube-vip.yaml
-	scp -i ~/.ssh/$certName $HOME/config.yaml $remoteuser@$newnode:~/config.yaml
-	scp -i ~/.ssh/$certName ~/.ssh/{$certName,$certName.pub} $remoteuser@$newnode:~/.ssh
+	scp -i ~/.ssh/$certName "$HOME/kube-vip.yaml" "$remoteuser@$newnode":~/kube-vip.yaml
+	scp -i ~/.ssh/$certName "$HOME/config.yaml" "$remoteuser@$newnode":~/config.yaml
+	scp -i ~/.ssh/$certName ~/.ssh/{$certName,$certName.pub} "$remoteuser@$newnode":~/.ssh
 	echo -e " \033[32;5mCopied successfully!\033[0m"
 done
 
 # Step 3: Connect to Master1 and move kube-vip.yaml and config.yaml. Then install RKE2, copy token back to admin machine. We then use the token to bootstrap additional masternodes
+# shellcheck disable=SC2087
 ssh -tt $remoteuser@$master1 -i ~/.ssh/$certName sudo su <<EOF
 mkdir -p /var/lib/rancher/rke2/server/manifests
 mv kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
@@ -181,8 +183,8 @@ echo -e " \033[32;5mMaster1 Completed\033[0m"
 
 # Step 4: Set variable to the token we just extracted, set kube config location
 token=$(cat token)
-sudo cat ~/.kube/rke2.yaml | sed 's/127.0.0.1/'$master1'/g' >$HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
+sudo cat ~/.kube/rke2.yaml | sed 's/127.0.0.1/'$master1'/g' >"$HOME/.kube/config"
+sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
 export KUBECONFIG=${HOME}/.kube/config
 sudo cp ~/.kube/config /etc/rancher/rke2/rke2.yaml
 kubectl get nodes
@@ -193,7 +195,8 @@ kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provi
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
 for newnode in "${extramasters[@]}"; do
-	ssh -tt $remoteuser@$newnode -i ~/.ssh/$certName sudo su <<EOF
+	# shellcheck disable=SC2087
+	ssh -tt "$remoteuser@$newnode" -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
@@ -215,7 +218,8 @@ kubectl get nodes
 
 # Step 7: Add Workers
 for newnode in "${workers[@]}"; do
-	ssh -tt $remoteuser@$newnode -i ~/.ssh/$certName sudo su <<EOF
+	# shellcheck disable=SC2087
+	ssh -tt "$remoteuser@$newnode" -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
@@ -238,8 +242,9 @@ echo -e " \033[32;5mDeploying Metallb\033[0m"
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool
-cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' >$HOME/ipAddressPool.yaml
+# shellcheck disable=SC2016
+curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool |
+	sed 's/$lbrange/'$lbrange'/g' >"$HOME/ipAddressPool.yaml"
 
 # Step 9: Deploy IP Pools and l2Advertisement
 echo -e " \033[32;5mAdding IP Pools, waiting for Metallb to be available first. This can take a long time as we're likely being rate limited for container pulls...\033[0m"
