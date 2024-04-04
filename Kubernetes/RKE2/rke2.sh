@@ -20,7 +20,7 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.7.2"
+export KVVERSION="v0.7.2"
 
 # The domain name of your cluster, inherit env by default
 DOMAIN=${DOMAIN:-my.org}
