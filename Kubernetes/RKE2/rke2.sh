@@ -117,19 +117,19 @@ done
 # create RKE2's self-installing manifest dir
 sudo mkdir -p /var/lib/rancher/rke2/server/manifests
 # Install the kube-vip deployment into rke2's self-installing manifest folder
-curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip >"$HOME/kube-vip.yaml"
 # shellcheck disable=SC2016
-sed -i 's/$interface/'$interface'/g; s/$vip/'$vip'/g' "$HOME/kube-vip.yaml"
+curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip |
+	sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' >~/kube-vip.yaml
 # Find/Replace all k3s entries to represent rke2
-sed -i 's/k3s/rke2/g' "$HOME/kube-vip.yaml"
-sudo cp kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
+sed -i 's/k3s/rke2/g' ~/kube-vip.yaml
+sudo cp ~/kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 
 # make kube folder to run kubectl later
 mkdir -p ~/.kube
 
 # create the rke2 config file
 sudo mkdir -p /etc/rancher/rke2
-touch config.yaml
+echo >~/config.yaml
 {
 	echo "tls-san:"
 	echo "  - $vip"
@@ -139,7 +139,7 @@ touch config.yaml
 	echo "write-kubeconfig-mode: 0644"
 	echo "disable:"
 	echo "  - rke2-ingress-nginx"
-} >>config.yaml
+} >>~/config.yaml
 # copy config.yaml to rancher directory
 sudo cp ~/config.yaml /etc/rancher/rke2/config.yaml
 
@@ -156,9 +156,9 @@ source ~/.bashrc
 
 # Step 2: Copy kube-vip.yaml and certs to all masters
 for newnode in "${allmasters[@]}"; do
-	scp -i ~/.ssh/$certName "$HOME/kube-vip.yaml" "$remoteuser@$newnode":~/kube-vip.yaml
-	scp -i ~/.ssh/$certName "$HOME/config.yaml" "$remoteuser@$newnode":~/config.yaml
-	scp -i ~/.ssh/$certName ~/.ssh/{$certName,$certName.pub} "$remoteuser@$newnode":~/.ssh
+	scp -i ~/.ssh/$certName ~/kube-vip.yaml "$remoteuser@$newnode":~/kube-vip.yaml
+	scp -i ~/.ssh/$certName ~/config.yaml "$remoteuser@$newnode":~/config.yaml
+	scp -i ~/.ssh/$certName ~/.ssh/$certName{,.pub} "$remoteuser@$newnode":~/.ssh
 	echo -e " \033[32;5mCopied successfully!\033[0m"
 done
 
@@ -169,12 +169,17 @@ mkdir -p /var/lib/rancher/rke2/server/manifests
 mv kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 mkdir -p /etc/rancher/rke2
 mv config.yaml /etc/rancher/rke2/config.yaml
-echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >> ~/.bashrc ; echo 'alias k=kubectl' >> ~/.bashrc ; source ~/.bashrc ;
+{
+	echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml'
+	echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin'
+	echo 'alias k=kubectl'
+} >> ~/.bashrc
+source ~/.bashrc
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
-echo "StrictHostKeyChecking no" > ~/.ssh/config
-ssh-copy-id -i ~/.ssh/$certName $remoteuser@$admin
+#echo "StrictHostKeyChecking no" > ~/.ssh/config
+#ssh-copy-id -i ~/.ssh/$certName $remoteuser@$admin
 scp -i ~/.ssh/$certName /var/lib/rancher/rke2/server/token $remoteuser@$admin:~/token
 scp -i ~/.ssh/$certName /etc/rancher/rke2/rke2.yaml $remoteuser@$admin:~/.kube/rke2.yaml
 exit
@@ -198,14 +203,16 @@ for newnode in "${extramasters[@]}"; do
 	# shellcheck disable=SC2087
 	ssh -tt "$remoteuser@$newnode" -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
-  touch /etc/rancher/rke2/config.yaml
-  echo "token: $token" >> /etc/rancher/rke2/config.yaml
-  echo "server: https://$master1:9345" >> /etc/rancher/rke2/config.yaml
-  echo "tls-san:" >> /etc/rancher/rke2/config.yaml
-  echo "  - $vip" >> /etc/rancher/rke2/config.yaml
-  echo "  - $master1" >> /etc/rancher/rke2/config.yaml
-  echo "  - $master2" >> /etc/rancher/rke2/config.yaml
-  echo "  - $master3" >> /etc/rancher/rke2/config.yaml
+  echo > /etc/rancher/rke2/config.yaml
+  {
+  	echo "token: $token"
+  	echo "server: https://$master1:9345"
+  	echo "tls-san:"
+  	echo "  - $vip"
+  	echo "  - $master1"
+  	echo "  - $master2"
+  	echo "  - $master3"
+  } >> /etc/rancher/rke2/config.yaml
   curl -sfL https://get.rke2.io | sh -
   systemctl enable rke2-server.service
   systemctl start rke2-server.service
@@ -221,7 +228,7 @@ for newnode in "${workers[@]}"; do
 	# shellcheck disable=SC2087
 	ssh -tt "$remoteuser@$newnode" -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
-  touch /etc/rancher/rke2/config.yaml
+  echo > /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
   echo "server: https://$vip:9345" >> /etc/rancher/rke2/config.yaml
   echo "node-label:" >> /etc/rancher/rke2/config.yaml
