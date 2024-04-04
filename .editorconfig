@@ -1,0 +1,55 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+indent_style = tab
+indent_size = 4
+
+[*.{c,h,cpp}]
+
+# Matches multiple files with brace expansion notation
+# Set default charset
+[*.{js,py}]
+charset = utf-8
+
+# 4 space indentation by tab
+[*.py]
+indent_style = tab
+indent_size = 4
+
+# Tab indentation (no size specified)
+[Makefile*]
+indent_style = tab
+
+# Indentation override for all JS under lib directory
+[lib/**.js]
+indent_style = tab
+indent_size = 2
+
+[.gitconfig]
+indent_style = tab
+indent_size = 2
+
+[Vagrantfile]
+indent_style = tab
+indent_size = 2
+
+# Matches the exact files either package.json or .travis.yml
+[{package.json,.travis.yml}]
+indent_style = spaces
+indent_size = 2
+
+# Standards I like
+[{*.groovy,*.rb,*.sh,.bash*}]
+indent_style = tab
+indent_size = 4
+
+# Standards I'm forced to...
+[{*.md,*.MD,*.yaml,*.yml}]
+indent_style = spaces
+indent_size = 2
