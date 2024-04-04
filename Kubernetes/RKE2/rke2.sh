@@ -38,7 +38,7 @@ master3=192.168.60.39
 workers=(192.168.60.26 192.168.60.83)
 
 # User of remote machines
-user=ubuntu
+remoteuser=ubuntu
 
 # Interface used on remotes
 interface=eth0
@@ -80,26 +80,27 @@ fi
 # Create a directory for the SSH certs
 mkdir -p ~/.ssh
 
-# don't assume the /home convention, Some run this on a mac :)
-homedir=$(eval echo ~$user)
-
 # Generate SSH certs if missing
-if [ ! -f "$homedir"/.ssh/$certName ]; then
-	if [ -f "$homedir"/$certName ]; then
+if [ ! -f "$HOME"/.ssh/$certName ]; then
+	if [ -f "$HOME"/$certName ]; then
 		# Move SSH certs to ~/.ssh and change permissions
-		cp "$homedir"/$certName{,.pub} "$homedir"/.ssh
-		chmod 400 "$homedir"/.ssh/*
-		chmod 700 "$homedir"/.ssh
+		cp "$HOME"/$certName{,.pub} "$HOME"/.ssh
+		chmod 400 "$HOME"/.ssh/*
+		chmod 700 "$HOME"/.ssh
 	else
-		ssh-keygen -t rsa -f "$homedir"/.ssh/$certName -N ""
+		ssh-keygen -t rsa -f "$HOME"/.ssh/$certName -N ""
 	fi
 fi
 
 # Install Kubectl if not already present
 if ! command -v kubectl version &>/dev/null; then
-	echo -e " \033[31;5mKubectl not found, installing\033[0m"
-	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-	sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+	if [ "$OS" == "Darwin" ]; then
+		brew install kubernetes-cli
+	else # assume Linux?
+		echo -e " \033[31;5mKubectl not found, installing\033[0m"
+		curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/$(uname -m)/kubectl"
+		sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+	fi
 else
 	echo -e " \033[32;5mKubectl already installed\033[0m"
 fi
@@ -109,7 +110,7 @@ sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
-	ssh-copy-id $user@$node
+	ssh-copy-id $remoteuser@$node
 done
 
 # Step 1: Create Kube VIP
@@ -125,7 +126,7 @@ sudo sed -i 's/k3s/rke2/g' /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 # copy kube-vip.yaml to home directory
 sudo cp /var/lib/rancher/rke2/server/manifests/kube-vip.yaml ~/kube-vip.yaml
 # change owner
-sudo chown $user:$user kube-vip.yaml
+sudo chown $USER:$USER kube-vip.yaml
 # make kube folder to run kubectl later
 mkdir ~/.kube
 
@@ -145,20 +146,23 @@ sudo cp ~/config.yaml /etc/rancher/rke2/config.yaml
 
 # update path with rke2-binaries
 echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >>~/.bashrc
+# shellcheck disable=SC2016
 echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >>~/.bashrc
 echo 'alias k=kubectl' >>~/.bashrc
+
+# shellcheck disable=SC1090
 source ~/.bashrc
 
 # Step 2: Copy kube-vip.yaml and certs to all masters
 for newnode in "${allmasters[@]}"; do
-	scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$newnode:~/kube-vip.yaml
-	scp -i ~/.ssh/$certName $HOME/config.yaml $user@$newnode:~/config.yaml
-	scp -i ~/.ssh/$certName ~/.ssh/{$certName,$certName.pub} $user@$newnode:~/.ssh
+	scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $remoteuser@$newnode:~/kube-vip.yaml
+	scp -i ~/.ssh/$certName $HOME/config.yaml $remoteuser@$newnode:~/config.yaml
+	scp -i ~/.ssh/$certName ~/.ssh/{$certName,$certName.pub} $remoteuser@$newnode:~/.ssh
 	echo -e " \033[32;5mCopied successfully!\033[0m"
 done
 
 # Step 3: Connect to Master1 and move kube-vip.yaml and config.yaml. Then install RKE2, copy token back to admin machine. We then use the token to bootstrap additional masternodes
-ssh -tt $user@$master1 -i ~/.ssh/$certName sudo su <<EOF
+ssh -tt $remoteuser@$master1 -i ~/.ssh/$certName sudo su <<EOF
 mkdir -p /var/lib/rancher/rke2/server/manifests
 mv kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
 mkdir -p /etc/rancher/rke2
@@ -168,9 +172,9 @@ curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
 echo "StrictHostKeyChecking no" > ~/.ssh/config
-ssh-copy-id -i "$homedir"/.ssh/$certName $user@$admin
-scp -i "$homedir"/.ssh/$certName /var/lib/rancher/rke2/server/token $user@$admin:~/token
-scp -i "$homedir"/.ssh/$certName /etc/rancher/rke2/rke2.yaml $user@$admin:~/.kube/rke2.yaml
+ssh-copy-id -i ~/.ssh/$certName $remoteuser@$admin
+scp -i ~/.ssh/$certName /var/lib/rancher/rke2/server/token $remoteuser@$admin:~/token
+scp -i ~/.ssh/$certName /etc/rancher/rke2/rke2.yaml $remoteuser@$admin:~/.kube/rke2.yaml
 exit
 EOF
 echo -e " \033[32;5mMaster1 Completed\033[0m"
@@ -189,7 +193,7 @@ kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provi
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
 for newnode in "${extramasters[@]}"; do
-	ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+	ssh -tt $remoteuser@$newnode -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
@@ -211,7 +215,7 @@ kubectl get nodes
 
 # Step 7: Add Workers
 for newnode in "${workers[@]}"; do
-	ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+	ssh -tt $remoteuser@$newnode -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
   echo "token: $token" >> /etc/rancher/rke2/config.yaml
