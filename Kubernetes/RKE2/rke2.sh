@@ -67,14 +67,33 @@ certName=id_rsa
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
-# For testing purposes - in case time is wrong due to VM snapshots
-sudo timedatectl set-ntp off
-sudo timedatectl set-ntp on
 
-# Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName
-chmod 644 /home/$user/.ssh/$certName.pub
+#fail immediately on errors
+set -e
+
+# For testing purposes - in case time is wrong due to VM snapshots
+if hash timedatectl 2>/dev/null; then
+	sudo timedatectl set-ntp off
+	sudo timedatectl set-ntp on
+fi
+
+# Create a directory for the SSH certs
+mkdir -p ~/.ssh
+
+# don't assume the /home convention, Some run this on a mac :)
+homedir=$(eval echo ~$user)
+
+# Generate SSH certs if missing
+if [ ! -f "$homedir"/.ssh/$certName ]; then
+	if [ -f "$homedir"/$certName ]; then
+		# Move SSH certs to ~/.ssh and change permissions
+		cp "$homedir"/$certName{,.pub} "$homedir"/.ssh
+		chmod 400 "$homedir"/.ssh/*
+		chmod 700 "$homedir"/.ssh
+	else
+		ssh-keygen -t rsa -f "$homedir"/.ssh/$certName -N ""
+	fi
+fi
 
 # Install Kubectl if not already present
 if ! command -v kubectl version &>/dev/null; then
@@ -149,9 +168,9 @@ curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
 echo "StrictHostKeyChecking no" > ~/.ssh/config
-ssh-copy-id -i /home/$user/.ssh/$certName $user@$admin
-scp -i /home/$user/.ssh/$certName /var/lib/rancher/rke2/server/token $user@$admin:~/token
-scp -i /home/$user/.ssh/$certName /etc/rancher/rke2/rke2.yaml $user@$admin:~/.kube/rke2.yaml
+ssh-copy-id -i "$homedir"/.ssh/$certName $user@$admin
+scp -i "$homedir"/.ssh/$certName /var/lib/rancher/rke2/server/token $user@$admin:~/token
+scp -i "$homedir"/.ssh/$certName /etc/rancher/rke2/rke2.yaml $user@$admin:~/.kube/rke2.yaml
 exit
 EOF
 echo -e " \033[32;5mMaster1 Completed\033[0m"
@@ -169,7 +188,7 @@ kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
 kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
-for newnode in "${masters[@]}"; do
+for newnode in "${extramasters[@]}"; do
 	ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
@@ -253,7 +272,7 @@ kubectl get pods --namespace cert-manager
 echo -e " \033[32;5mDeploying Rancher\033[0m"
 helm install rancher rancher-latest/rancher \
 	--namespace cattle-system \
-	--set hostname=rancher.${DOMAIN} \
+	--set hostname="rancher.$DOMAIN" \
 	--set bootstrapPassword=admin
 kubectl -n cattle-system rollout status deploy/rancher
 kubectl -n cattle-system get deploy rancher
