@@ -26,12 +26,16 @@ KVVERSION="v0.7.2"
 DOMAIN=${DOMAIN:-my.org}
 
 # Set the IP addresses of the admin, masters, and workers nodes
-admin=192.168.3.5
-master1=192.168.3.21
-master2=192.168.3.22
-master3=192.168.3.23
-worker1=192.168.3.24
-worker2=192.168.3.25
+# "admin" is the machine from which you will be running the ops,
+# in theory it can be "localhost", just make sure you have sshd
+# running and accessible there.
+admin=192.168.60.22
+master1=192.168.60.37
+master2=192.168.60.38
+master3=192.168.60.39
+
+# Array of worker nodes
+workers=(192.168.60.26 192.168.60.83)
 
 # User of remote machines
 user=ubuntu
@@ -40,25 +44,22 @@ user=ubuntu
 interface=eth0
 
 # Set the virtual IP address (VIP)
-vip=192.168.3.50
+vip=192.168.60.171
+
+# Array of extra master nodes
+extramasters=("$master2" "$master3")
 
 # Array of all master nodes
-allmasters=($master1 $master2 $master3)
-
-# Array of master nodes
-masters=($master2 $master3)
-
-# Array of worker nodes
-workers=($worker1 $worker2)
-
-# Array of all
-all=($master1 $master2 $master3 $worker1 $worker2)
+allmasters=("$master1" "${extramasters[@]}")
 
 # Array of all minus master1
-allnomaster1=($master2 $master3 $worker1 $worker2)
+allnomaster1=("${extramasters[@]}" "${workers[@]}")
+
+# Array of all
+all=("$master1" "${allnomaster1[@]}")
 
 #Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
+lbrange=192.168.60.171-192.168.60.189
 
 #ssh certificate name variable
 certName=id_rsa
