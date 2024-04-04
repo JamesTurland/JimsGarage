@@ -26,9 +26,9 @@ export KVVERSION="v0.7.2"
 DOMAIN=${DOMAIN:-my.org}
 
 # Set the IP addresses of the admin, masters, and workers nodes
-# "admin" is the machine from which you will be running the ops,
-# in theory it can be "localhost", just make sure you have sshd
-# running and accessible there.
+# "admin" is your desktop machine from which you will be running the ops,
+# just for this run, make sure you have sshd
+# running and accessible here!
 admin=192.168.60.22
 master1=192.168.60.37
 master2=192.168.60.38
@@ -106,7 +106,7 @@ else
 fi
 
 # Create SSH Config file to ignore checking (don't use in production!)
-#sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
+sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
@@ -171,25 +171,25 @@ mkdir -p /etc/rancher/rke2
 mv config.yaml /etc/rancher/rke2/config.yaml
 {
 	echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml'
-	echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin'
+	echo 'export PATH=\${PATH}:/var/lib/rancher/rke2/bin'
 	echo 'alias k=kubectl'
 } >> ~/.bashrc
 source ~/.bashrc
 curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
-#echo "StrictHostKeyChecking no" > ~/.ssh/config
-#ssh-copy-id -i ~/.ssh/$certName $remoteuser@$admin
-scp -i ~/.ssh/$certName /var/lib/rancher/rke2/server/token $remoteuser@$admin:~/token
-scp -i ~/.ssh/$certName /etc/rancher/rke2/rke2.yaml $remoteuser@$admin:~/.kube/rke2.yaml
+echo "StrictHostKeyChecking no" > ~/.ssh/config
+ssh-copy-id -i ~/.ssh/$certName $USER@$admin
+scp -i ~/.ssh/$certName /var/lib/rancher/rke2/server/token $USER@$admin:~/token
+scp -i ~/.ssh/$certName /etc/rancher/rke2/rke2.yaml $USER@$admin:~/.kube/rke2.yaml
 exit
 EOF
 echo -e " \033[32;5mMaster1 Completed\033[0m"
 
 # Step 4: Set variable to the token we just extracted, set kube config location
-token=$(cat token)
-sudo cat ~/.kube/rke2.yaml | sed 's/127.0.0.1/'$master1'/g' >"$HOME/.kube/config"
-sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
+token=$(cat ~/token)
+sed 's/127.0.0.1/'$master1'/g' <~/.kube/rke2.yaml >~/.kube/config
+sudo chown "$(id -u):$(id -g)" ~/.kube/config
 export KUBECONFIG=${HOME}/.kube/config
 sudo cp ~/.kube/config /etc/rancher/rke2/rke2.yaml
 kubectl get nodes
@@ -215,7 +215,7 @@ for newnode in "${extramasters[@]}"; do
   } >> /etc/rancher/rke2/config.yaml
   curl -sfL https://get.rke2.io | sh -
   systemctl enable rke2-server.service
-  systemctl start rke2-server.service
+  time systemctl start rke2-server.service
   exit
 EOF
 	echo -e " \033[32;5mMaster node joined successfully!\033[0m"
@@ -236,7 +236,7 @@ for newnode in "${workers[@]}"; do
   echo "  - longhorn=true" >> /etc/rancher/rke2/config.yaml
   curl -sfL https://get.rke2.io | INSTALL_RKE2_TYPE="agent" sh -
   systemctl enable rke2-agent.service
-  systemctl start rke2-agent.service
+  time systemctl start rke2-agent.service
   exit
 EOF
 	echo -e " \033[32;5mWorker node joined successfully!\033[0m"
@@ -251,7 +251,7 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/conf
 # Download ipAddressPool and configure using lbrange above
 # shellcheck disable=SC2016
 curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool |
-	sed 's/$lbrange/'$lbrange'/g' >"$HOME/ipAddressPool.yaml"
+	sed 's/$lbrange/'$lbrange'/g' >~/ipAddressPool.yaml
 
 # Step 9: Deploy IP Pools and l2Advertisement
 echo -e " \033[32;5mAdding IP Pools, waiting for Metallb to be available first. This can take a long time as we're likely being rate limited for container pulls...\033[0m"
@@ -259,7 +259,7 @@ kubectl wait --namespace metallb-system \
 	--for=condition=ready pod \
 	--selector=component=controller \
 	--timeout=1800s
-kubectl apply -f ipAddressPool.yaml
+kubectl apply -f ~/ipAddressPool.yaml
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
 
 # Step 10: Install Rancher (Optional - Delete if not required)
