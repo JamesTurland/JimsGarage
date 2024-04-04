@@ -117,38 +117,38 @@ done
 # create RKE2's self-installing manifest dir
 sudo mkdir -p /var/lib/rancher/rke2/server/manifests
 # Install the kube-vip deployment into rke2's self-installing manifest folder
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip
-cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' >$HOME/kube-vip.yaml
-sudo mv kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
-
+curl -s https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/kube-vip >$HOME/kube-vip.yaml
+sed -i 's/$interface/'$interface'/g; s/$vip/'$vip'/g' $HOME/kube-vip.yaml
 # Find/Replace all k3s entries to represent rke2
-sudo sed -i 's/k3s/rke2/g' /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
-# copy kube-vip.yaml to home directory
-sudo cp /var/lib/rancher/rke2/server/manifests/kube-vip.yaml ~/kube-vip.yaml
-# change owner
-sudo chown $USER:$USER kube-vip.yaml
+sed -i 's/k3s/rke2/g' $HOME/kube-vip.yaml
+sudo cp kube-vip.yaml /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
+
 # make kube folder to run kubectl later
-mkdir ~/.kube
+mkdir -p ~/.kube
 
 # create the rke2 config file
 sudo mkdir -p /etc/rancher/rke2
 touch config.yaml
-echo "tls-san:" >>config.yaml
-echo "  - $vip" >>config.yaml
-echo "  - $master1" >>config.yaml
-echo "  - $master2" >>config.yaml
-echo "  - $master3" >>config.yaml
-echo "write-kubeconfig-mode: 0644" >>config.yaml
-echo "disable:" >>config.yaml
-echo "  - rke2-ingress-nginx" >>config.yaml
+{
+	echo "tls-san:"
+	echo "  - $vip"
+	echo "  - $master1"
+	echo "  - $master2"
+	echo "  - $master3"
+	echo "write-kubeconfig-mode: 0644"
+	echo "disable:"
+	echo "  - rke2-ingress-nginx"
+} >>config.yaml
 # copy config.yaml to rancher directory
 sudo cp ~/config.yaml /etc/rancher/rke2/config.yaml
 
-# update path with rke2-binaries
-echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >>~/.bashrc
-# shellcheck disable=SC2016
-echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >>~/.bashrc
-echo 'alias k=kubectl' >>~/.bashrc
+{
+	# update path with rke2-binaries
+	echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml'
+	# shellcheck disable=SC2016
+	echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin'
+	echo 'alias k=kubectl'
+} >>~/.bashrc
 
 # shellcheck disable=SC1090
 source ~/.bashrc
