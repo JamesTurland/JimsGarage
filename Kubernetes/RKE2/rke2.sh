@@ -21,7 +21,10 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+KVVERSION="v0.7.2"
+
+# The domain name of your cluster, inherit env by default
+DOMAIN=${DOMAIN:-my.org}
 
 # Set the IP addresses of the admin, masters, and workers nodes
 admin=192.168.3.5
@@ -248,7 +251,7 @@ kubectl get pods --namespace cert-manager
 echo -e " \033[32;5mDeploying Rancher\033[0m"
 helm install rancher rancher-latest/rancher \
  --namespace cattle-system \
- --set hostname=rancher.my.org \
+ --set hostname=rancher.${DOMAIN} \
  --set bootstrapPassword=admin
 kubectl -n cattle-system rollout status deploy/rancher
 kubectl -n cattle-system get deploy rancher
