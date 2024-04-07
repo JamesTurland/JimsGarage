@@ -1,0 +1,30 @@
+version: "3"
+services:
+  deconz:
+    image: deconzcommunity/deconz:latest
+    container_name: deconz
+    restart: unless-stopped
+    ports:
+      - '8002:8002'
+      - '5443:5443'
+      - '5900:5900'
+    volumes:
+      - /home/ubuntu/docker/deconz:/opt/deCONZ
+      - /home/ubuntu/docker/deconz/otau:/root/otau
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    environment:
+      - DECONZ_DEVICE=/dev/ttyACM0
+      - DECONZ_WEB_PORT=8002
+      - DECONZ_WS_PORT=5443
+      - DEBUG_INFO=1
+      - DEBUG_APS=0
+      - DEBUG_ZCL=0
+      - DEBUG_ZDP=0
+      - DEBUG_OTAU=0
+      - DECONZ_VNC_MODE=1
+      - DECONZ_VNC_PORT=5900
+      - DECONZ_VNC_PASSWORD=password
+      - TZ=Europe/London
+    security_opt:
+      - no-new-privileges:true
