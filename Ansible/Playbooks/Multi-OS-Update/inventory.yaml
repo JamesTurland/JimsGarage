@@ -1,0 +1,14 @@
+arch:
+  hosts:
+    arch01:
+      ansible_host: 192.168.200.214
+      ansible_user: 'root'
+      ansible_python_interpreter: /usr/bin/python3
+
+docker:
+  hosts:
+    docker01:
+      ansible_host: 192.168.200.50
+      ansible_user: 'ubuntu'
+      ansible_become: true
+      ansible_become_method: sudo
