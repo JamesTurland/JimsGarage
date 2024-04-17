@@ -1,0 +1,34 @@
+version: "3.5"
+
+services:
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+    command: serve
+    volumes:
+      - "/home/ubuntu/diun/data:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      - "TZ=Europe/London"
+      - "LOG_LEVEL=info"
+      - "DIUN_WATCH_WORKERS=20"
+      - "DIUN_WATCH_SCHEDULE=0 */6 * * *"
+      - "DIUN_WATCH_JITTER=30s"
+      - "DIUN_WATCH_RUNONSTARTUP=true"
+      - "DIUN_PROVIDERS_DOCKER=true"
+      - "DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true"
+
+      - "DIUN_NOTIF_GOTIFY_ENDPOINT=https://gotify.jimsgarage.co.uk"
+      - "DIUN_NOTIF_GOTIFY_TOKEN=AYgfdfQaRk3Pb1x" # get your token from Gotify UI
+      - "DIUN_NOTIF_GOTIFY_PRIORITY=1"
+      - "DIUN_NOTIF_GOTIFY_TIMEOUT=10s"
+
+      - "DIUN_NOTIF_DISCORD_WEBHOOKURL=https://discord.com/api/webhooks/1230110122752217159/OWcRAUUbT3QFUSs3z35TCD9dUkM26PH0iNY1RNdgqlzoAMC81SZM_iwQ5wuyY8cyFoqL" # change to your webhook
+      # - "DIUN_NOTIF_DISCORD_MENTIONS" # (comma separated)
+      - "DIUN_NOTIF_DISCORD_RENDERFIELDS=true"
+      - "DIUN_NOTIF_DISCORD_TIMEOUT=10s"
+      # - "DIUN_NOTIF_DISCORD_TEMPLATEBODY"
+
+    labels:
+      - "diun.enable=true"
+    restart: always
