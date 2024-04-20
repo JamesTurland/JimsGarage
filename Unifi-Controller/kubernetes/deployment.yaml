@@ -1,0 +1,164 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: unifi-controller
+    app.kubernetes.io/instance: unifi-controller
+  name: unifi-controller
+  namespace: unifi-controller
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: unifi-controller
+  template:
+    metadata:
+      labels:
+        app: unifi-controller
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+        - image: docker.io/mongo:7.0
+          imagePullPolicy: IfNotPresent
+          name: unifi-db
+          args: ["--dbpath", "/data/db"]
+          livenessProbe:
+            exec:
+              command:
+                - mongo
+                - --disableImplicitSessions
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - mongo
+                - --disableImplicitSessions
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          ports:
+            - containerPort: 27017
+              name: mongo
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data/db
+              name: unifi-db
+            - name: "init-database"
+              mountPath: "/docker-entrypoint-initdb.d/"
+        - image: lscr.io/linuxserver/unifi-network-application:8.1.113-ls36
+          imagePullPolicy: IfNotPresent
+          name: unifi-controller
+          envFrom:
+            - secretRef:
+                name: unifi-env
+          env:
+            - name: MONGO_HOST
+              value: "localhost"
+            - name: MONGO_PORT
+              value: "27017"
+          volumeMounts:
+            - mountPath: /config
+              name: unifi-config
+          ports:
+            - containerPort: 8443
+              name: web
+              protocol: TCP
+            - containerPort: 3478
+              name: stun
+              protocol: UDP
+            - containerPort: 1001
+              name: discovery
+              protocol: UDP
+            - containerPort: 8080
+              name: communication
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 2
+              memory: 1Gi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            tcpSocket:
+              port: communication
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: unifi-db
+          persistentVolumeClaim:
+            claimName: unifi-db
+        - name: unifi-config
+          persistentVolumeClaim:
+            claimName: unifi-config
+        - name: "init-database"
+          configMap:
+            name: create-db-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unifi-tcp
+  namespace: unifi-controller
+  annotations:
+    metallb.universe.tf/allow-shared-ip: unifi-controller
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 10.122.0.65 # MUST match loadBalancerIP of the other service. Choose a availible IP in your MetalLB Range
+  ports:
+    - name: web
+      protocol: TCP
+      port: 8443
+      targetPort: 8443
+    - name: communication
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: unifi-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unifi-udp
+  namespace: unifi-controller
+  annotations:
+    metallb.universe.tf/allow-shared-ip: unifi-controller
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 10.122.0.65 # MUST match loadBalancerIP of the other service. Choose a availible IP in your MetalLB Range
+  ports:
+    - name: stun
+      protocol: UDP
+      port: 3478
+      targetPort: 3478
+    - name: discovery
+      protocol: UDP
+      port: 10001
+      targetPort: 10001
+  selector:
+    app: unifi-controller
