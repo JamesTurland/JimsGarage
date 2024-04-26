@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jim's Garage Ansible Demo</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <style>
+    .hero {
+      background: url(Jims-Garage-1.png) no-repeat center center;
+      background-size: cover;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+    }
+    
+    .features {
+      margin-top: 50px;
+      text-align: center;
+    }
+    
+    .feature {
+      padding: 20px;
+      transition: transform 0.3s ease;
+    }
+    
+    .feature:hover {
+      transform: scale(1.05);
+    }
+    
+    .footer {
+      background-color: #333;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">My Webpage</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="#home">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#features">Features</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#contact">Contact</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="hero" id="home">
+    <h1>Welcome to Jim's Garage Ansible Demo</h1>
+  </div>
+
+  <!-- Features Section -->
+  <div class="container features" id="features">
+    <h2>Our Features</h2>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="feature">
+          <i class="fas fa-cogs fa-3x"></i>
+          <h4>Feature 1</h4>
+          <p>Dynamic and interactive elements.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature">
+          <i class="fas fa-bolt fa-3x"></i>
+          <h4>Feature 2</h4>
+          <p>Responsive design and transitions.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature">
+          <i class="fas fa-heart fa-3x"></i>
+          <h4>Feature 3</h4>
+          <p>Engaging user experiences.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Section -->
+  <div class="footer">
+    <p>© 2024 My Webpage. All rights reserved.</p>
+  </div>
+</body>
+</html>
