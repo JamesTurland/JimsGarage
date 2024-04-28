@@ -93,7 +93,18 @@ else
 fi
 
 # Create SSH Config file to ignore checking (don't use in production!)
-sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
+#sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
+# Check if SSH config file exists, create if not
+if [ ! -f ~/.ssh/config ]; then
+    touch ~/.ssh/config
+    echo "StrictHostKeyChecking no" > ~/.ssh/config
+else
+    # Add StrictHostKeyChecking no to the beginning of the file if it already exists
+    sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
+fi
+
+# Set permissions for the SSH config file
+chmod 600 ~/.ssh/config
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
