@@ -8,7 +8,7 @@ services:
     ports:
         - 8080:8080
         - 9090:9090
-    image: headscale/headscale:latest
+    image: headscale/headscale:0.22.3
     command: headscale serve
     restart: unless-stopped
 
