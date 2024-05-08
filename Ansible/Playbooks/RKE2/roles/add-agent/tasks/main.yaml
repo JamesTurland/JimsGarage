@@ -1,0 +1,17 @@
+# Copy agent config to all agents - we need to change agent2 & 3 later with the token
+- name: Deploy RKE2 Agent Configuration
+  ansible.builtin.template:
+    src: templates/rke2-agent-config.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname in groups['agents']
+
+# Check agents have restarted to pick up config
+- name: Ensure RKE2 agents are enabled and running
+  ansible.builtin.systemd:
+    name: rke2-agent
+    enabled: true
+    state: restarted
+    daemon_reload: true

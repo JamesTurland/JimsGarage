@@ -1,0 +1,60 @@
+# Wait for Server 1 to be ready before continuing with metallb deployment
+- name: Wait for k8s nodes with node label 'server=true' to be ready, otherwise we cannot start metallb deployment
+  ansible.builtin.command:
+    cmd: "kubectl wait --for=condition=Ready nodes --selector server=true --timeout=600s"
+  register: nodes_ready
+  retries: 120
+  delay: 10
+  changed_when: true
+  become_user: "{{ ansible_user }}"
+  when: inventory_hostname == groups['servers'][0]
+
+# Create namespace so that we can deploy metallb
+- name: Apply metallb namespace
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
+
+# Apply metallb manifest
+- name: Apply metallb manifest
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/{{ metallb_version }}/config/manifests/metallb-native.yaml
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
+
+# Wait for metallb deployment pods to be alive before deploying metallb manifests
+- name: Wait for metallb pods to be ready, otherwise we cannot start metallb deployment
+  ansible.builtin.command:
+    cmd: "kubectl wait --namespace metallb-system --for=condition=ready pod --selector=component=controller --timeout=1800s"
+  changed_when: true
+  become_user: "{{ ansible_user }}"
+  when: inventory_hostname == groups['servers'][0]
+
+# Apply L2 Advertisement for metallb
+- name: Apply metallb L2 Advertisement
+  ansible.builtin.command:
+    cmd: kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
+
+# Deploy metal IP Pool to Server 1
+- name: Copy metallb IPPool to server 1
+  ansible.builtin.template:
+    src: templates/metallb-ippool.j2
+    dest: /home/{{ ansible_user }}/ippool.yaml
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+  when: inventory_hostname == groups['servers'][0]
+
+# don't think this will work as nodes are no execute, might need agents first
+- name: Apply metallb ipppool
+  ansible.builtin.command:
+    cmd: kubectl apply -f /home/{{ ansible_user }}/ippool.yaml
+  become_user: "{{ ansible_user }}"
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
