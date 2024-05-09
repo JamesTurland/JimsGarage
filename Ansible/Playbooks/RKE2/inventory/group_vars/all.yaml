@@ -1,16 +1,18 @@
+---
 os: "linux"
 arch: "amd64"
 
-kube_vip_version: "v0.8.0"
-vip_interface: eth0
 vip: 192.168.3.50
 
 metallb_version: v0.13.12
 lb_range: 192.168.3.80-192.168.3.90
 lb_pool_name: first-pool
 
-# Set this if you want a different rke2 version than the default
-# rke2_version: "v1.29.4+rke2r1"
-
 ansible_become: true
 ansible_become_method: sudo
+################################################################################
+# options to change default values
+# kube_vip_version: "v0.8.0"
+# vip_interface: "eth0"
+# rke2_version: "v1.29.4+rke2r1"
+# rke2_install_dir: "/usr/local/bin"
