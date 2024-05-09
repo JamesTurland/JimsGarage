@@ -1,0 +1,53 @@
+# Copy server config with token to all servers except server 1 (this has token)
+- name: Deploy RKE2 server Configuration
+  ansible.builtin.template:
+    src: templates/rke2-server-config.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname != groups['servers'][0]
+
+# Keep checking the cluster API until it's functioning (deployed)
+- name: Wait for cluster API to be ready (can take 5-10 mins depending on internet/hardware)
+  ansible.builtin.command:
+    cmd: "kubectl get nodes"
+  register: kubectl_output
+  until: "'connection refused' not in kubectl_output.stderr"
+  retries: 120
+  delay: 10
+  changed_when: true
+  become_user: "{{ ansible_user }}"
+  when: inventory_hostname == groups['servers'][0]
+
+# Use kubectl to deploy yaml. Perhaps this can be added to the manifest folder initially
+- name: Apply kube vip configuration file
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml apply -f https://kube-vip.io/manifests/rbac.yaml
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
+
+# Apply the kube-vip configration. Perhaps this can be added to the manifest folder initially
+- name: Apply kube vip configuration file
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
+  changed_when: true
+  when: inventory_hostname == groups['servers'][0]
+
+# Check that additional servers are restarted
+- name: Ensure additional RKE2 servers are enabled and running
+  ansible.builtin.systemd:
+    name: rke2-server
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  when: inventory_hostname != groups['servers'][0]
+
+# enable additional servers
+- name: Ensure RKE2 server is enabled and running
+  ansible.builtin.systemd:
+    name: rke2-server
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  when: inventory_hostname != groups['servers'][0]

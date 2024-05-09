@@ -1,0 +1,13 @@
+# rke2-agent.service.j2
+[Unit]
+Description=RKE2 Agent
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/rke2 agent
+KillMode=process
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

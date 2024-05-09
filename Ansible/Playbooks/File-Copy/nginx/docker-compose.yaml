@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  web:
+    image: nginx
+    container_name: jimsgarage
+    volumes:
+     - /home/ubuntu/docker/nginx/templates:/etc/nginx/templates
+     - /home/ubuntu/docker/nginx/web/website:/usr/share/nginx/html
+    environment:
+     - NGINX_HOST=nginx.jimsgarage.co.uk
+     - NGINX_PORT=80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.entrypoints=http"
+      - "traefik.http.routers.nginx.rule=Host(`nginx.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.nginx-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.nginx.middlewares=nginx-https-redirect"
+      - "traefik.http.routers.nginx-secure.entrypoints=https"
+      - "traefik.http.routers.nginx-secure.rule=Host(`nginx.jimsgarage.co.uk`)"
+      - "traefik.http.routers.nginx-secure.tls=true"
+      - "traefik.http.routers.nginx-secure.service=nginx"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+    networks:
+      proxy:
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  proxy:
+    external: true
