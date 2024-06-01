@@ -6,3 +6,13 @@
 
 # Jim's Garage
 Here's a collection of Docker Compose and config files for use in my videos. Simply tweak to your environment and deploy!
+
+## Star History
+
+<a href="https://star-history.com/#JamesTurland/JimsGarage&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JamesTurland/JimsGarage&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JamesTurland/JimsGarage&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JamesTurland/JimsGarage&type=Date" />
+ </picture>
+</a>
