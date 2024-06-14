@@ -1,0 +1,58 @@
+version: '3.7'
+services:
+  homeassistant:
+    container_name: home-assistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - /home/ubuntu/docker/home-assistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Europe/London
+    restart: unless-stopped
+    #ports:
+    #  - 8123:8123
+    networks:
+      proxy:
+      home-assistant:
+    depends_on:
+      - homeassistant-db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.home-assistant.entrypoints=http"
+      - "traefik.http.routers.home-assistant.rule=Host(`home-assistant.jimsgarge.co.uk`)"
+      - "traefik.http.middlewares.home-assistant-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.home-assistant.middlewares=home-assistant-https-redirect"
+      - "traefik.http.routers.home-assistant-secure.entrypoints=https"
+      - "traefik.http.routers.home-assistant-secure.rule=Host(`home-assistant.jimsgarage.co.uk`)"
+      - "traefik.http.routers.home-assistant-secure.tls=true"
+      - "traefik.http.routers.home-assistant-secure.tls.certresolver=cloudflare" # change this to your cert resolver
+      - "traefik.http.routers.home-assistant-secure.service=home-assistant"
+      - "traefik.http.services.home-assistant.loadbalancer.server.port=8123"
+      - "traefik.docker.network=proxy"
+    security_opt:
+      - no-new-privileges:true
+
+
+  homeassistant-db:
+    image: docker.io/postgres:16.3
+    container_name: homeassistant-db
+    restart: unless-stopped
+    # Change that password, of course!
+    environment:
+      - POSTGRES_USER=homeassistant_user
+      - POSTGRES_PASSWORD=xF2odDFSjd3DFsl0ZgfQsjnd55yH
+      - POSTGRES_DB=homeassistant-db
+      # ensure the database gets created correctly
+      # https://github.com/matrix-org/synapse/blob/master/docs/postgres.md#set-up-database
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - /home/ubuntu/docker/home-assistant/schemas:/var/lib/postgresql/data
+    networks:
+      home-assistant:
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  proxy:
+    external: true
+  home-assistant:
