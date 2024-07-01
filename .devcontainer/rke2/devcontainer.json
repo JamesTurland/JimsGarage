@@ -1,0 +1,54 @@
+{
+  "name": "ansible-rke2",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "../../Ansible/Playbooks/RKE2"
+  },
+  "mounts": ["source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind"],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bierner.markdown-preview-github-styles",
+        "DavidAnson.vscode-markdownlint",
+        "dhoeric.ansible-vault",
+        "eamodio.gitlens",
+        "esbenp.prettier-vscode",
+        "mhutchie.git-graph",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort",
+        "oderwat.indent-rainbow",
+        "redhat.ansible",
+        "samuelcolvin.jinjahtml",
+        "tamasfe.even-better-toml",
+        "yzhang.markdown-all-in-one"
+      ],
+      "settings": {
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[markdown]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[python]": {
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "ansible.python.interpreterPath": "/usr/local/bin/python",
+        "ansibleVault.executable": "/home/vscode/venv/bin/ansible-vault",
+        "editor.formatOnSave": true,
+        "files.associations": {
+          "*.yaml": "ansible"
+        },
+        "files.trimFinalNewlines": true,
+        "files.trimTrailingWhitespace": true,
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  }
+}

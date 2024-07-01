@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: "/var/lib/rancher/rke2/server/manifests"
     state: directory
-    mode: '0644'
+    mode: "0755"
   when: inventory_hostname in groups['servers']
 
 # Copy kube-vip to server 1 manifest folder for auto deployment at bootstrap
@@ -13,5 +13,5 @@
     dest: /var/lib/rancher/rke2/server/manifests/kube-vip.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   when: inventory_hostname == groups['servers'][0]

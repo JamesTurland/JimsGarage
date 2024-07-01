@@ -13,16 +13,11 @@
 
 # bootstraps first server and copies configs for others/agents
 - name: Prepare all nodes
-  hosts: servers,agents
-  gather_facts: true # enables us to gather lots of useful variables: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html
+  hosts: rke2
+  gather_facts: false # fact gathering is slow and not needed for any of our tasks
+  become: true
   roles:
     - prepare-nodes
-
-# creates directories for download and then downloads RKE2 and changes permissions
-- name: Download RKE2
-  hosts: servers,agents
-  gather_facts: true
-  roles:
     - rke2-download
 
 # Creates RKE2 bootstrap manifests folder and copies kube-vip template over (configured with variables)
