@@ -1,0 +1,26 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.jellyfin.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: jellyfin
+          port: 8096
+    - match: Host(`jellyfin.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: jellyfin
+          port: 8096
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: yourdomain-tls

@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: ./kompose convert -f plex/docker-compose.yml
+    kompose.version: 1.27.0 (b0ed6a2c9)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: pms-docker
+  name: plex
+  namespace: plex
+spec:
+  ports:
+    - name: "32400"
+      port: 32400
+      protocol: TCP
+      targetPort: 32400
+    - name: "32400-udp"
+      port: 32400
+      protocol: UDP
+      targetPort: 32400
+    - name: "3005"
+      port: 3005
+      targetPort: 3005
+    - name: "8324"
+      port: 8324
+      targetPort: 8324
+    - name: "32469"
+      port: 32469
+      targetPort: 32469
+    - name: "1900"
+      port: 1900
+      protocol: UDP
+      targetPort: 1900
+    - name: "32410"
+      port: 32410
+      protocol: UDP
+      targetPort: 32410
+    - name: "32412"
+      port: 32412
+      protocol: UDP
+      targetPort: 32412
+    - name: "32413"
+      port: 32413
+      protocol: UDP
+      targetPort: 32413
+    - name: "32414"
+      port: 32414
+      protocol: UDP
+      targetPort: 32414
+  selector:
+    app: plex
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.200.12
+  type: LoadBalancer

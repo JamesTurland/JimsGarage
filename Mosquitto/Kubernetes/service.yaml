@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mosquitto
+  name: mosquitto
+  namespace: mosquitto
+spec:
+  ports:
+  - name: mqtt
+    port: 1883
+    protocol: TCP
+    targetPort: 1883
+  - name: websocket
+    port: 9001
+    protocol: TCP
+    targetPort: 9001
+  selector:
+    app: mosquitto
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.200.14
+  type: LoadBalancer

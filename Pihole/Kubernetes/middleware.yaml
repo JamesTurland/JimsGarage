@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: dashboard-redirect
+  namespace: pihole
+spec:
+  redirectRegex:
+    regex: /admin/$
+    replacement: /
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: dashboard-prefix
+  namespace: pihole
+spec:
+  addPrefix:
+    prefix: /admin

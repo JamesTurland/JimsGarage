@@ -1,0 +1,26 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wg-easy
+  namespace: wg-easy
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.wg-easy.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: wg-easy-web
+          port: 51821
+    - match: Host(`wg-easy.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: wg-easy-web
+          port: 51821
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: yourdomain-tls
