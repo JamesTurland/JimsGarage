@@ -122,7 +122,7 @@ k3sup install \
   --tls-san $vip \
   --cluster \
   --k3s-version $k3sVersion \
-  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1 --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
+  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1 --node-taint node-role.kubernetes.io/master=true:NoSchedule --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true --kubelet-arg containerd=/run/k3s/containerd/containerd.sock" \
   --merge \
   --sudo \
   --local-path $HOME/.kube/config \
@@ -157,7 +157,7 @@ for newnode in "${masters[@]}"; do
     --server \
     --server-ip $master1 \
     --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
+    --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true --kubelet-arg containerd=/run/k3s/containerd/containerd.sock" \
     --server-user $user
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
 done
@@ -171,7 +171,7 @@ for newagent in "${workers[@]}"; do
     --k3s-version $k3sVersion \
     --server-ip $master1 \
     --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--node-label \"longhorn=true\" --node-label \"worker=true\""
+    --k3s-extra-args "--node-label \"longhorn=true\" --node-label \"worker=true\" --kube-proxy-arg metrics-bind-address=0.0.0.0 --kubelet-arg containerd=/run/k3s/containerd/containerd.sock"
   echo -e " \033[32;5mAgent node joined successfully!\033[0m"
 done
 
