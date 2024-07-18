@@ -30,51 +30,74 @@ KVVERSION="v0.6.3"
 # K3S Version
 k3sVersion="v1.26.10+k3s2"
 
-# Set the IP addresses of the master and work nodes
-master1=192.168.3.21
-master2=192.168.3.22
-master3=192.168.3.23
-worker1=192.168.3.24
-worker2=192.168.3.25
-worker3=192.168.3.26
-
-# User of remote machines
-user=ubuntu
-
-# Interface used on remotes
-interface=eth0
+# Define node types and their properties
+declare -A nodes=(
+    ["master1"]="ip=192.168.2.132,user=laneone,interface=eth0,type=master"
+    ["master2"]="ip=192.168.2.133,user=laneone,interface=eth0,type=master"
+    ["master3"]="ip=192.168.2.134,user=laneone,interface=eth0,type=master"
+    ["worker1"]="ip=192.168.2.129,user=laneone,interface=eth0,type=worker,labels=longhorn=true,worker=true"
+    ["worker2"]="ip=192.168.2.130,user=laneone,interface=eth0,type=worker,labels=longhorn=true,worker=true"
+    ["worker3"]="ip=192.168.2.131,user=laneone,interface=eth0,type=worker,labels=longhorn=true,worker=true"
+    ["worker4"]="ip=192.168.2.125,user=laneone,interface=enp34s0,type=worker,labels=worker=true,auth=password,password=l"
+)
 
 # Set the virtual IP address (VIP)
-vip=192.168.3.50
-
-# Array of master nodes
-masters=($master2 $master3)
-
-# Array of worker nodes
-workers=($worker1 $worker2 $worker3)
-
-# Array of all
-all=($master1 $master2 $master3 $worker1 $worker2 $worker3)
-
-# Array of all minus master
-allnomaster1=($master2 $master3 $worker1 $worker2 $worker3)
+vip=192.168.2.50
 
 #Loadbalancer IP range
-lbrange=192.168.3.60-192.168.3.80
+lbrange=192.168.2.60-192.168.2.100
 
 #ssh certificate name variable
 certName=id_rsa
 
+# Additional k3s flags for metrics
+common_extra_args="--kubelet-arg containerd=/run/k3s/containerd/containerd.sock"
+server_extra_args="--no-deploy servicelb --no-deploy traefik --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true"
+agent_extra_args="--node-label worker=true"
+
+#############################################
+#            HELPER FUNCTIONS               #
+#############################################
+
+get_node_ip() {
+    echo "${nodes[$1]}" | grep -oP 'ip=\K[^,]+'
+}
+
+get_node_user() {
+    echo "${nodes[$1]}" | grep -oP 'user=\K[^,]+'
+}
+
+get_node_interface() {
+    echo "${nodes[$1]}" | grep -oP 'interface=\K[^,]+'
+}
+
+get_node_type() {
+    echo "${nodes[$1]}" | grep -oP 'type=\K[^,]+'
+}
+
+get_node_labels() {
+    echo "${nodes[$1]}" | grep -oP 'labels=\K[^,]*' | tr ',' ' '
+}
+
+get_node_auth() {
+    echo "${nodes[$1]}" | grep -oP 'auth=\K[^,]*'
+}
+
+get_node_password() {
+    echo "${nodes[$1]}" | grep -oP 'password=\K[^,]*'
+}
+
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
+
 # For testing purposes - in case time is wrong due to VM snapshots
 sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
 cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
+chmod 600 /home/$user/.ssh/$certName
 chmod 644 /home/$user/.ssh/$certName.pub
 
 # Install k3sup to local machine if not already present
@@ -115,19 +138,21 @@ EOF
 done
 
 # Step 1: Bootstrap First k3s Node
-mkdir ~/.kube
+mkdir -p ~/.kube
+first_master=$(echo "${!nodes[@]}" | tr ' ' '\n' | grep "master" | head -n1)
 k3sup install \
-  --ip $master1 \
-  --user $user \
+  --ip $(get_node_ip $first_master) \
+  --user $(get_node_user $first_master) \
   --tls-san $vip \
   --cluster \
   --k3s-version $k3sVersion \
-  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1 --node-taint node-role.kubernetes.io/master=true:NoSchedule --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true --kubelet-arg containerd=/run/k3s/containerd/containerd.sock" \
+  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$(get_node_interface $first_master) --node-ip=$(get_node_ip $first_master) --node-taint node-role.kubernetes.io/master=true:NoSchedule $common_extra_args $server_extra_args" \
   --merge \
   --sudo \
   --local-path $HOME/.kube/config \
   --ssh-key $HOME/.ssh/$certName \
   --context k3s-ha
+
 echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
 
 # Step 2: Install Kube-VIP for HA
@@ -148,31 +173,48 @@ ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
 EOF
 
 # Step 6: Add new master nodes (servers) & workers
-for newnode in "${masters[@]}"; do
-  k3sup join \
-    --ip $newnode \
-    --user $user \
-    --sudo \
-    --k3s-version $k3sVersion \
-    --server \
-    --server-ip $master1 \
-    --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true --kubelet-arg containerd=/run/k3s/containerd/containerd.sock" \
-    --server-user $user
-  echo -e " \033[32;5mMaster node joined successfully!\033[0m"
-done
-
-# add workers
-for newagent in "${workers[@]}"; do
-  k3sup join \
-    --ip $newagent \
-    --user $user \
-    --sudo \
-    --k3s-version $k3sVersion \
-    --server-ip $master1 \
-    --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--node-label \"longhorn=true\" --node-label \"worker=true\" --kube-proxy-arg metrics-bind-address=0.0.0.0 --kubelet-arg containerd=/run/k3s/containerd/containerd.sock"
-  echo -e " \033[32;5mAgent node joined successfully!\033[0m"
+for node in "${!nodes[@]}"; do
+    if [ "$(get_node_type $node)" == "master" ] && [ "$node" != "$first_master" ]; then
+        k3sup join \
+          --ip $(get_node_ip $node) \
+          --user $(get_node_user $node) \
+          --sudo \
+          --k3s-version $k3sVersion \
+          --server \
+          --server-ip $(get_node_ip $first_master) \
+          --ssh-key $HOME/.ssh/$certName \
+          --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$(get_node_interface $node) --node-ip=$(get_node_ip $node) --node-taint node-role.kubernetes.io/master=true:NoSchedule $common_extra_args $server_extra_args" \
+          --server-user $(get_node_user $first_master)
+        echo -e " \033[32;5mMaster node $node joined successfully!\033[0m"
+    elif [ "$(get_node_type $node)" == "worker" ]; then
+        labels=$(get_node_labels $node)
+        label_args=""
+        if [ ! -z "$labels" ]; then
+            label_args="--node-label \"$labels\""
+        fi
+        auth_method=$(get_node_auth $node)
+        if [ "$auth_method" == "password" ]; then
+            password=$(get_node_password $node)
+            sshpass -p "$password" k3sup join \
+              --ip $(get_node_ip $node) \
+              --user $(get_node_user $node) \
+              --sudo \
+              --k3s-version $k3sVersion \
+              --server-ip $(get_node_ip $first_master) \
+              --k3s-extra-args "$label_args $common_extra_args $agent_extra_args" \
+              --ssh-key $HOME/.ssh/$certName
+        else
+            k3sup join \
+              --ip $(get_node_ip $node) \
+              --user $(get_node_user $node) \
+              --sudo \
+              --k3s-version $k3sVersion \
+              --server-ip $(get_node_ip $first_master) \
+              --ssh-key $HOME/.ssh/$certName \
+              --k3s-extra-args "$label_args $common_extra_args $agent_extra_args"
+        fi
+        echo -e " \033[32;5mWorker node $node joined successfully!\033[0m"
+    fi
 done
 
 # Step 7: Install kube-vip as network LoadBalancer - Install the kube-vip Cloud Provider
@@ -184,8 +226,6 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/conf
 # Download ipAddressPool and configure using lbrange above
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
 cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
-# Apply the ip address pool 
-kubectl apply -f $HOME/ipAddressPool.yaml
 
 # Step 9: Test with Nginx
 kubectl apply -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml -n default
