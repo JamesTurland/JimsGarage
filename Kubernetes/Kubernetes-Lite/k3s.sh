@@ -172,15 +172,33 @@ cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' > $HOME/kube-v
 # Step 4: Copy kube-vip.yaml to master1
 scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
 
-
 # Step 5: Connect to Master1 and move kube-vip.yaml
 ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 EOF
 
+# Function to set up passwordless sudo
+setup_passwordless_sudo() {
+    local node=$1
+    local user=$(get_node_user $node)
+    local ip=$(get_node_ip $node)
+    local auth_method=$(get_node_auth $node)
+    local password=$(get_node_password $node)
+
+    echo "Setting up passwordless sudo for $user on $ip"
+    
+    if [ "$auth_method" == "password" ]; then
+        sshpass -p "$password" ssh -o StrictHostKeyChecking=no $user@$ip "echo '$password' | sudo -S sh -c 'echo \"$user ALL=(ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$user && chmod 0440 /etc/sudoers.d/$user'"
+    else
+        ssh -i $HOME/.ssh/$certName -o StrictHostKeyChecking=no $user@$ip "sudo sh -c 'echo \"$user ALL=(ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$user && chmod 0440 /etc/sudoers.d/$user'"
+    fi
+}
+
 # Step 6: Add new master nodes (servers) & workers
 for node in "${!nodes[@]}"; do
+    setup_passwordless_sudo $node
+
     if [ "$(get_node_type $node)" == "master" ] && [ "$node" != "$first_master" ]; then
         k3sup join \
           --ip $(get_node_ip $node) \
