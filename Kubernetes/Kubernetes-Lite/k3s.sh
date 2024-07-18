@@ -39,6 +39,7 @@ declare -A nodes=(
     ["worker2"]="ip=192.168.2.130,user=laneone,interface=eth0,type=worker,labels=longhorn=true,worker=true"
     ["worker3"]="ip=192.168.2.131,user=laneone,interface=eth0,type=worker,labels=longhorn=true,worker=true"
     ["worker4"]="ip=192.168.2.125,user=laneone,interface=enp34s0,type=worker,labels=worker=true,auth=password,password=l"
+    ["worker5"]="ip=192.168.2.104,user=laneone,interface=enp104s0,type=worker,labels=worker=true,auth=password,password=l"
 )
 
 # Set the virtual IP address (VIP)
@@ -231,7 +232,7 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manif
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
-cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
+cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > ipAddressPool.yaml
 
 # Step 9: Test with Nginx
 kubectl apply -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml -n default
@@ -298,6 +299,17 @@ echo -e " \033[32;5mInstalling Longhorn - It can take a while for all pods to de
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
 kubectl get pods \
 --namespace longhorn-system
+
+echo "Waiting for Longhorn UI deployment to be fully ready..."
+while ! (kubectl wait --for=condition=available deployment/longhorn-driver-deployer -n longhorn-system --timeout=600s && \
+         kubectl wait --for=condition=available deployment/longhorn-ui -n longhorn-system --timeout=600s && \
+         kubectl wait --for=condition=available deployment/csi-attacher -n longhorn-system --timeout=600s && \
+         kubectl wait --for=condition=available deployment/csi-provisioner -n longhorn-system --timeout=600s && \
+         kubectl wait --for=condition=available deployment/csi-resizer -n longhorn-system --timeout=600s && \
+         kubectl wait --for=condition=available deployment/csi-snapshotter -n longhorn-system --timeout=600s); do
+    echo "Waiting for Longhorn UI deployment to be fully ready..."
+    sleep 1
+done
 
 # Step 17: Print out confirmation
 
@@ -407,7 +419,22 @@ echo -e " \033[32;5mInstalling Prometheus...\033[0m"
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-# Install kube-prometheus-stack
-helm install prometheus prometheus-community/kube-prometheus-stack -f values.yaml --namespace monitoring --create-namespace
+# Install Prometheus stack
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  -f values.yaml \
+  --namespace monitoring \
+  --create-namespace
+
+# Wait for the Grafana deployment to be ready
+kubectl -n monitoring rollout status deploy/grafana
+
+echo "Changing Grafana service to LoadBalancer type..."
+    kubectl patch svc grafana -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
 
 echo -e " \033[32;5mPrometheus has been installed!\033[0m"
+
+
+# Show external ip on which to access grafana
+kubectl get svc/grafana -n monitoring
+
+echo -e " \033[32;5m Happy Charting! \033[0m"
