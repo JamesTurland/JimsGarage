@@ -55,6 +55,12 @@ common_extra_args="--kubelet-arg containerd=/run/k3s/containerd/containerd.sock"
 server_extra_args="--no-deploy servicelb --no-deploy traefik --kube-controller-manager-arg bind-address=0.0.0.0 --kube-proxy-arg metrics-bind-address=0.0.0.0 --kube-scheduler-arg bind-address=0.0.0.0 --etcd-expose-metrics true"
 agent_extra_args="--node-label worker=true"
 
+# Create Grafana admin credentials
+
+grafana_user="adminuser"  # desired grafana username
+grafana_password="adminpassword"  # Generates a random 12-character password
+
+
 #############################################
 #            HELPER FUNCTIONS               #
 #############################################
@@ -97,7 +103,7 @@ sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
 cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName
+chmod 600 /home/$user/.ssh/$certName 
 chmod 644 /home/$user/.ssh/$certName.pub
 
 # Install k3sup to local machine if not already present
@@ -291,8 +297,7 @@ echo -e " \033[32;5mBe patient as it downloads and configures a number of pods i
 echo -e " \033[32;5mInstalling Longhorn - It can take a while for all pods to deploy...\033[0m"
 kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/Longhorn/longhorn.yaml
 kubectl get pods \
---namespace longhorn-system \
---watch
+--namespace longhorn-system
 
 # Step 17: Print out confirmation
 
@@ -300,3 +305,109 @@ kubectl get nodes
 kubectl get svc -n longhorn-system
 
 echo -e " \033[32;5mHappy Kubing! Access Longhorn through Rancher UI\033[0m"
+
+# Step 18: Download and modify values.yaml for Prometheus
+
+# Ensure yq is installed
+if ! command -v yq &> /dev/null; then
+    echo "yq is not installed. Installing yq..."
+    wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
+fi
+
+echo -e " \033[32;5mSetting up Prometheus...\033[0m"
+
+# Download values.yaml
+wget https://raw.githubusercontent.com/techno-tim/launchpad/master/kubernetes/kube-prometheus-stack/values.yml -O values.yaml
+
+# Get master node IPs
+master_ips=$(for node in "${!nodes[@]}"; do
+    if [ "$(get_node_type $node)" == "master" ]; then
+        echo "$(get_node_ip $node)"
+    fi
+done | sort -u)
+
+echo '------'
+echo 'Master IPs: ' 
+echo $master_ips
+echo '------'
+
+# Function to update endpoints in values.yaml
+update_endpoints() {
+    local component=$1
+    echo "Updating endpoints for $component"
+    
+    # Create the new endpoints content
+    local new_endpoints=""
+    for ip in $master_ips; do
+        new_endpoints+="    - $ip\n"
+    done
+    
+    # Use awk to replace the endpoints section
+    awk -v component="$component" -v new_endpoints="$new_endpoints" '
+    $0 ~ "^" component ":" { 
+        print $0
+        in_component = 1
+        next
+    }
+    in_component && /^[a-z]/ { 
+        in_component = 0 
+    }
+    in_component && /^ *endpoints:/ { 
+        print "  endpoints:"
+        print new_endpoints
+        skip = 1
+        next
+    }
+    skip && /^[^ ]/ { 
+        skip = 0 
+    }
+    !skip { print }
+    ' values.yaml > values.yaml.tmp && mv values.yaml.tmp values.yaml
+    
+    echo "Updated $component endpoints"
+}
+
+# Update endpoints for different components
+components=("kubeControllerManager" "kubeEtcd" "kubeScheduler" "kubeProxy")
+for component in "${components[@]}"; do
+    update_endpoints "$component"
+done
+
+# Create Grafana admin credentials
+echo -e " \033[32;5mCreating Grafana admin credentials...\033[0m"
+
+# Create Kubernetes secret for Grafana
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic grafana-admin-credentials \
+    --from-literal=admin-user=$grafana_user \
+    --from-literal=admin-password=$grafana_password \
+    -n monitoring \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+echo -e " \033[32;5mGrafana admin credentials created. Username: $grafana_user, Password: $grafana_password\033[0m"
+echo -e " \033[32;5mPlease make note of these credentials and store them securely.\033[0m"
+
+# Update Grafana admin credentials in values.yaml
+yq eval '.grafana.admin.existingSecret = "grafana-admin-credentials"' -i values.yaml
+yq eval '.grafana.admin.userKey = "admin-user"' -i values.yaml
+yq eval '.grafana.admin.passwordKey = "admin-password"' -i values.yaml
+
+# Verify the changes
+for component in "${components[@]}"; do
+    echo "Endpoints for ${component}:"
+    yq eval ".${component}.endpoints" values.yaml
+done
+
+echo -e " \033[32;5mvalues.yaml has been updated with master node IPs\033[0m"
+
+# Step 19: Install Prometheus using Helm
+echo -e " \033[32;5mInstalling Prometheus...\033[0m"
+
+# Add prometheus-community helm repo
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install kube-prometheus-stack
+helm install prometheus prometheus-community/kube-prometheus-stack -f values.yaml --namespace monitoring --create-namespace
+
+echo -e " \033[32;5mPrometheus has been installed!\033[0m"
