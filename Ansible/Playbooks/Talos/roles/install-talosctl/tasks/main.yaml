@@ -1,0 +1,12 @@
+---
+# Ansible Playbook to install Talos
+- name: Download talosctl for Linux (amd64)
+  ansible.builtin.get_url:
+    url: https://github.com/siderolabs/talos/releases/download/{{ talosctl_version }}/talosctl-linux-amd64
+    dest: /usr/local/bin/talosctl
+    mode: '0755'  # Make the binary executable
+  register: download_result  # Register the result for debugging or verification
+
+- name: Display download result
+  ansible.builtin.debug:
+    var: download_result  # Display the result of the download task
