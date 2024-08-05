@@ -1,0 +1,38 @@
+version: "3"
+secrets:
+  access_token:
+    file: access_token
+services:
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    secrets:
+      - access_token
+    environment:
+      - TZ=Europe/London
+      # remove old images after update (useful for saving space)
+      - WATCHTOWER_CLEANUP=true
+      # the below will ignore labels set. It is worth checking out labels as that can be a more scalabe solution (automatic)
+      # - WATCHTOWER_DISABLE_CONTAINERS=traefik crowdsec bouncer-traefik deconz frigate home-assistant homeassistant-db
+      # the docker host can also be remote by specifying tcp
+      # - DOCKER_HOST=tcp://hostname:port
+      # how frequently to check for images (default is 24 hours)
+      # - WATCHTOWER_POLL_INTERVAL=86400
+      # choose whether to restart the containers after updates
+      # - WATCHTOWER_INCLUDE_RESTARTING=true
+      # choose whether to update stopped and exited containers
+      # - WATCHTOWER_INCLUDE_STOPPED=true
+      # this will start containers that were stopped or exited if they are updated
+      # - WATCHTOWER_REVIVE_STOPPED=true
+      # watchtower can behave like DIUN by only notifying, and not updating
+      # - WATCHTOWER_MONITOR_ONLY=true
+      # you can tell watchtower to do updates and restarts one by one - can be helpful
+      - WATCHTOWER_ROLLING_RESTART=true
+
+      - WATCHTOWER_NOTIFICATIONS=gotify
+      - WATCHTOWER_NOTIFICATION_GOTIFY_URL=https://gotify.jimsgarage.co.uk
+      - WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN=/run/secrets/access_token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    #  - /root/.docker/config.json:/config.json - Enable this when using a custom repo
+    command: --interval 30 # change this interval to whatever suits you
