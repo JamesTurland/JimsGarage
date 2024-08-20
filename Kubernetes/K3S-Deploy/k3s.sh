@@ -21,20 +21,20 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+KVVERSION="v0.8.0"
 
 # K3S Version
-k3sVersion="v1.26.10+k3s2"
+k3sVersion="v1.29.4+k3s1"
 
 # Set the IP addresses of the master and work nodes
-master1=192.168.3.21
-master2=192.168.3.22
-master3=192.168.3.23
-worker1=192.168.3.24
-worker2=192.168.3.25
+master1=192.168.3.101
+master2=192.168.3.102
+master3=192.168.3.103
+worker1=192.168.3.104
+worker2=192.168.3.105
 
 # User of remote machines
-user=ubuntu
+user=server
 
 # Interface used on remotes
 interface=eth0
@@ -58,7 +58,7 @@ allnomaster1=($master2 $master3 $worker1 $worker2)
 lbrange=192.168.3.60-192.168.3.80
 
 #ssh certificate name variable
-certName=id_rsa
+certName=server_id_rsa
 
 #############################################
 #            DO NOT EDIT BELOW              #
