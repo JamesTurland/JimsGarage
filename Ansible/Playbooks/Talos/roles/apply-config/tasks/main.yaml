@@ -10,7 +10,7 @@
     cmd: talosctl apply-config --insecure --nodes {{ control_plane_2 }} --file {{ config_directory }}/controlplane.yaml
   changed_when: true
 
-- name: Apply config to first node
+- name: Apply config to third node
   ansible.builtin.command:
     cmd: talosctl apply-config --insecure --nodes {{ control_plane_3 }} --file {{ config_directory }}/controlplane.yaml
   changed_when: true
