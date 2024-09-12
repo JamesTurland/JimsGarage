@@ -17,7 +17,7 @@ services:
       - 8989:8989 # Sonarr
       - 9696:9696 # Prowlarr
     volumes:
-      - /home/ubuntu/docker/arr-stack:/gluetun
+      - /home/ubuntu/docker/arr-stack/gluetun:/gluetun
     environment:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
       - VPN_SERVICE_PROVIDER=nordvpn
