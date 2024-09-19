@@ -13,7 +13,7 @@ spec:
     - match: Host(`pihole.yourdomain.co.uk`)
       kind: Rule
       services:
-        - name: pihole
+        - name: pihole-web
           port: 80
       middlewares:
         - name: default-headers
