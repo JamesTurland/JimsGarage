@@ -99,6 +99,25 @@ spec:
     port: 67
     protocol: UDP
     targetPort: 67
+  - name: dns
+    port: 53
+    protocol: TCP
+    targetPort: 53
+  selector:
+    app: pihole
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.1.222 # this is your DNS IP, NOT THE GUI!
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: pihole
+  name: pihole-web
+  namespace: pihole
+spec:
+  ports:
   - name: pihole-http
     port: 80
     protocol: TCP
@@ -107,12 +126,6 @@ spec:
     port: 443
     protocol: TCP
     targetPort: 443
-  - name: dns
-    port: 53
-    protocol: TCP
-    targetPort: 53
   selector:
     app: pihole
-  externalTrafficPolicy: Local
-  loadBalancerIP: 192.168.200.11
-  type: LoadBalancer
+  type: ClusterIP # Gui is only available via proxy
