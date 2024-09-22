@@ -6,7 +6,7 @@ services:
     networks:
       - grafana-monitoring
     volumes:
-      - /home/ubuntu/docker/grafana-monitoring/loki:/etc/loki
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/loki:/etc/loki
     ports:
       - "3100:3100"
     restart: unless-stopped
@@ -18,7 +18,7 @@ services:
       - grafana-monitoring
     volumes:
       - /var/log:/var/log
-      - /home/ubuntu/docker/grafana-monitoring/promtail:/etc/promtail
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/promtail:/etc/promtail
     ports:
       - "1514:1514" # this is only needed if you are going to send syslogs
     restart: unless-stopped
@@ -56,7 +56,7 @@ services:
     networks:
       - grafana-monitoring
     volumes:
-      - /home/ubuntu/docker/grafana-monitoring/influxdb:/var/lib/influxdb2
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/influxdb:/var/lib/influxdb2
   telegraf:
     container_name: telegraf
     restart: unless-stopped
@@ -64,10 +64,10 @@ services:
     networks:
       - grafana-monitoring
     volumes:
-        - '/home/ubuntu/docker/grafana-monitoring/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
+        - '/home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro'
         - '/:/hostfs:ro' # to monitor docker-vm
         - '/var/run/docker.sock:/var/run/docker.sock' # to monitor docker containers
-        - '/home/ubuntu/docker/grafana-monitoring/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
+        - '/home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/telegraf/mibs:/usr/share/snmp/mibs' # mibs files [e.g., sophos]
     environment:
         - HOST_ETC=/hostfs/etc
         - HOST_PROC=/hostfs/proc
@@ -87,9 +87,9 @@ services:
       - 8125:8125/udp # statsd
       - 8126:8126 # statsd admin
     volumes:
-      - /home/ubuntu/docker/grafana-monitoring/graphite/configs:/opt/graphite/conf
-      - /home/ubuntu/docker/grafana-monitoring/graphite/data:/opt/graphite/storage
-      - /home/ubuntu/docker/grafana-monitoring/graphite/statsd_config:/opt/statsd/config
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/graphite/configs:/opt/graphite/conf
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/graphite/data:/opt/graphite/storage
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/graphite/statsd_config:/opt/statsd/config
     networks:
       - grafana-monitoring
   prometheus:
@@ -99,7 +99,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - /home/ubuntu/docker/grafana-monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - /home/jbit_tig_monitoring/ubuntu/docker/grafana-monitoring/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - grafana-monitoring
 
