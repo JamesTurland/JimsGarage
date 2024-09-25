@@ -4,7 +4,7 @@ argument_specs:
     short_description: Install kube-vip manifest
     description: Install kube-vip manifest
     author:
-      - James Turland <james@turland.uk>
+      - Jim's Garage
     options:
       kube_vip_version:
         type: str
