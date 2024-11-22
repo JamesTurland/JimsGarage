@@ -27,13 +27,6 @@ spec:
       - image: visibilityspots/cloudflared
         imagePullPolicy: IfNotPresent
         name: cloudflared
-        ports:
-        - containerPort: 53
-          name: dns
-          protocol: TCP
-        - containerPort: 67
-          name: dns-udp
-          protocol: UDP
         env:
         - name: TUNNEL_METRICS
           value: 127.0.0.1:3000
