@@ -1,0 +1,64 @@
+version: "3.8"
+services:
+  web:
+    image: ghcr.io/hoarder-app/hoarder:${HOARDER_VERSION:-release}
+    restart: unless-stopped
+    volumes:
+      - data:/data
+    #ports:
+    #  - 3000:3000
+    env_file:
+      - .env
+    environment:
+      MEILI_ADDR: http://meilisearch:7700
+      BROWSER_WEB_URL: http://chrome:9222
+      OPENAI_API_KEY: OPENAI_API_KEY
+      DATA_DIR: /data
+    networks:
+      - proxy
+      - hoarder
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.hoarder.entrypoints=http"
+      - "traefik.http.routers.hoarder.rule=Host(`hoarder.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.hoarder-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.hoarder.middlewares=hoarder-https-redirect"
+      - "traefik.http.routers.hoarder-secure.entrypoints=https"
+      - "traefik.http.routers.hoarder-secure.rule=Host(`hoarder.jimsgarage.co.uk`)"
+      - "traefik.http.routers.hoarder-secure.tls=true"
+      - "traefik.http.routers.hoarder-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.hoarder-secure.service=hoarder"
+      - "traefik.http.services.hoarder.loadbalancer.server.port=3000" 
+  chrome:
+    image: gcr.io/zenika-hub/alpine-chrome:123
+    restart: unless-stopped
+    command:
+      - --no-sandbox
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --remote-debugging-address=0.0.0.0
+      - --remote-debugging-port=9222
+      - --hide-scrollbars
+    networks:
+      - hoarder
+  meilisearch:
+    image: getmeili/meilisearch:v1.11.1
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch:/meili_data
+    networks:
+      - hoarder
+
+volumes:
+  meilisearch:
+  data:
+
+networks:
+  proxy:
+    external: true
+  hoarder:
