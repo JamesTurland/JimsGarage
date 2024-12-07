@@ -21,7 +21,12 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+KVVERSION="v0.8.7"
+CMVERSION="v1.16.2"
+MLBVERSION="v0.14.8"
+K8SVERSION="v1.30.7"
+K8SVERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+RANCHERDN=rancher.amrithapuri.org
 
 # Set the IP addresses of the admin, masters, and workers nodes
 admin=192.168.3.5
@@ -33,6 +38,9 @@ worker2=192.168.3.25
 
 # User of remote machines
 user=ubuntu
+#user=root
+home=/home/$user
+#home=/$user
 
 # Interface used on remotes
 interface=eth0
@@ -69,15 +77,15 @@ sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
-chmod 644 /home/$user/.ssh/$certName.pub
+cp $home/{$certName,$certName.pub} $home/.ssh
+chmod 600 $home/.ssh/$certName 
+chmod 644 $home/.ssh/$certName.pub
 
 # Install Kubectl if not already present
 if ! command -v kubectl version &> /dev/null
 then
     echo -e " \033[31;5mKubectl not found, installing\033[0m"
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    curl -LO "https://dl.k8s.io/release/$K8SVERSION/bin/linux/amd64/kubectl"
     sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 else
     echo -e " \033[32;5mKubectl already installed\033[0m"
@@ -112,6 +120,7 @@ mkdir ~/.kube
 sudo mkdir -p /etc/rancher/rke2
 touch config.yaml
 echo "tls-san:" >> config.yaml 
+echo "  - $RANCHERDN" >> config.yaml
 echo "  - $vip" >> config.yaml
 echo "  - $master1" >> config.yaml
 echo "  - $master2" >> config.yaml
@@ -144,9 +153,9 @@ curl -sfL https://get.rke2.io | sh -
 systemctl enable rke2-server.service
 systemctl start rke2-server.service
 echo "StrictHostKeyChecking no" > ~/.ssh/config
-ssh-copy-id -i /home/$user/.ssh/$certName $user@$admin
-scp -i /home/$user/.ssh/$certName /var/lib/rancher/rke2/server/token $user@$admin:~/token
-scp -i /home/$user/.ssh/$certName /etc/rancher/rke2/rke2.yaml $user@$admin:~/.kube/rke2.yaml
+ssh-copy-id -i $home/.ssh/$certName $user@$admin
+scp -i $home/.ssh/$certName /var/lib/rancher/rke2/server/token $user@$admin:~/token
+scp -i $home/.ssh/$certName /etc/rancher/rke2/rke2.yaml $user@$admin:~/.kube/rke2.yaml
 exit
 EOF
 echo -e " \033[32;5mMaster1 Completed\033[0m"
@@ -207,8 +216,8 @@ kubectl get nodes
 
 # Step 8: Install Metallb
 echo -e " \033[32;5mDeploying Metallb\033[0m"
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
+#kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/$MLBVERSION/config/manifests/metallb-native.yaml
 # Download ipAddressPool and configure using lbrange above
 curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/ipAddressPool
 cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
@@ -235,20 +244,20 @@ kubectl create namespace cattle-system
 
 # Install Cert-Manager
 echo -e " \033[32;5mDeploying Cert-Manager\033[0m"
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.crds.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/$CMVERSION/cert-manager.crds.yaml
 helm repo add jetstack https://charts.jetstack.io
 helm repo update
 helm install cert-manager jetstack/cert-manager \
 --namespace cert-manager \
 --create-namespace \
---version v1.13.2
+--version $CMVERSION
 kubectl get pods --namespace cert-manager
 
 # Install Rancher
 echo -e " \033[32;5mDeploying Rancher\033[0m"
 helm install rancher rancher-latest/rancher \
  --namespace cattle-system \
- --set hostname=rancher.my.org \
+ --set hostname=$RANCHERDN \
  --set bootstrapPassword=admin
 kubectl -n cattle-system rollout status deploy/rancher
 kubectl -n cattle-system get deploy rancher
