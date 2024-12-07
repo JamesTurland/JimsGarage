@@ -26,7 +26,7 @@ CMVERSION="v1.16.2"
 MLBVERSION="v0.14.8"
 K8SVERSION="v1.30.7"
 K8SVERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
-RANCHERDN=rancher.amrithapuri.org
+RANCHERDN=rancher.my.org
 
 # Set the IP addresses of the admin, masters, and workers nodes
 admin=192.168.3.5
