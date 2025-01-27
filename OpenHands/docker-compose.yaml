@@ -1,0 +1,19 @@
+services:
+    all-hands-ai:
+        image: 'docker.all-hands.dev/all-hands-ai/openhands:0.21'
+        container_name: openhands-app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '3000:3000'
+        volumes:
+            - '.openhands-state:/.openhands-state'
+            - '/var/run/docker.sock:/var/run/docker.sock'
+        environment:
+            - LOG_ALL_EVENTS=true
+            - 'SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.21-nikolaik'
+          #  - LLM_API_KEY: "NA" # You can use a self hosted LLM if you like
+          #  - LLM_BASE_URL: "Ollama address:11434" # You can use a self hosted LLM if you like
+        pull_policy: always
+        tty: true
+        stdin_open: true
