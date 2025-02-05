@@ -1,0 +1,41 @@
+---
+- name: Ensure docker-compose is installed
+  ansible.builtin.package:
+    name: docker-compose
+    state: present
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Setup Portainer directory
+  ansible.builtin.file:
+    path: /home/ubuntu/docker-compose/portainer
+    state: directory
+    mode: '0755'  # Optional file permissions
+    owner: ubuntu  # Optional ownership
+    group: ubuntu  # Optional group ownership
+
+- name: Copy compose from template to host
+  ansible.builtin.template:
+    src: "templates/docker_compose.yaml.j2"
+    dest: "/home/ubuntu/docker-compose/portainer/docker-compose.yaml"
+    mode: '0755'  # Optional file permissions
+    owner: ubuntu  # Optional ownership
+    group: ubuntu  # Optional group ownership
+  notify:
+    - Start Portainer
+
+- name: Create Portainer storage on NFS if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ portainer_data }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy Portainer stack
+  ansible.builtin.command:
+    cmd: docker stack deploy -c /home/ubuntu/docker-compose/portainer/docker-compose.yaml portainer
+  register: swarm_check
+  changed_when: false

@@ -1,0 +1,20 @@
+---
+- name: Check if Swarm is already initialized
+  ansible.builtin.command:
+    cmd: docker info
+  register: swarm_check
+  changed_when: false
+
+- name: Retrieve manager join token from manager
+  ansible.builtin.set_fact:
+    manager_token: "{{ hostvars[groups['managers'][0]]['manager_token'].stdout }}"
+  when: "'Swarm: inactive' in swarm_check.stdout"
+
+- name: Join manager to Swarm
+  ansible.builtin.command:
+    cmd: docker swarm join --token {{ manager_token }} {{ hostvars[groups['managers'][0]].ansible_host }}:2377
+  when:
+    - manager_token is defined
+    - "'Swarm: inactive' in swarm_check.stdout"
+  register: swarm_join
+  changed_when: "'This node joined a swarm as a manager' in swarm_join.stdout"

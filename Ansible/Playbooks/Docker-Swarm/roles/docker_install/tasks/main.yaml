@@ -1,0 +1,41 @@
+---
+- name: Ensure apt is using HTTPS
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - software-properties-common
+
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: "https://download.docker.com/linux/ubuntu/gpg"
+    state: present
+
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: present
+
+- name: Install Docker CE
+  ansible.builtin.apt:
+    name: docker-ce
+    state: present
+    update_cache: true
+
+- name: Configure Docker daemon options
+  ansible.builtin.template:
+    src: "templates/docker_daemon.json.j2"
+    dest: "/etc/docker/daemon.json"
+    owner: 'root'
+    group: 'root'
+    mode: '0755'  # Optional file permissions
+  notify: Restart Docker
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started

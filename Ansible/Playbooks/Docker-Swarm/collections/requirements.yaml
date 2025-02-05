@@ -1,0 +1,6 @@
+---
+collections:
+  - name: ansible.utils
+  - name: community.general
+  - name: ansible.posix
+  - name: community.docker.docker_stack

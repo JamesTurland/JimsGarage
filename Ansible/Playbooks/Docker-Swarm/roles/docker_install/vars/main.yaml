@@ -1,0 +1,5 @@
+---
+docker_apt_release_channel: "stable"
+docker_apt_repository: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+docker_daemon_options:
+  storage-driver: "overlay2"
