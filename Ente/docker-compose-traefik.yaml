@@ -19,8 +19,8 @@ services:
      # ENTE_CLI_CONFIG_PATH: /cli-data/
     volumes:
       - /home/ubuntu/docker/ente/custom-logs:/var/logs
-      - /home/ubuntu/docker/ente/museum.yaml:/museum.yaml:ro
-      - /home/ubuntu/docker/ente/scripts/compose/credentials.yaml:/credentials.yaml:ro
+      - /home/ubuntu/docker/ente/config/museum.yaml:/museum.yaml:ro
+      - /home/ubuntu/docker/ente/config/scripts/compose/credentials.yaml:/credentials.yaml:ro
       #- /home/ubuntu/docker/ente/cli-data:/cli-data
      # - /home/ubuntu/docker/ente/exports/ente-photos:/exports
       - /home/ubuntu/docker/ente/data:/data:ro
