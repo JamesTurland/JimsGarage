@@ -1,0 +1,81 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    # container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    env_file:
+      - .env # should default to .env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      # - 8080:8080/tcp # SearXNG
+    volumes:
+      - /home/ubuntu/docker/searxng/gluetun:/gluetun
+    environment:
+      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=wireguard
+      # OpenVPN:
+      # - OPENVPN_USER=
+      # - OPENVPN_PASSWORD=
+      # Wireguard:
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_TOKEN}
+      - WIREGUARD_ADDRESSES=10.5.0.2/16
+      - SERVER_COUNTRIES=UNITED KINGDOM
+      # Timezone for accurate log times
+      - TZ=Europe/London
+      # Server list updater
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      - UPDATER_PERIOD=24h
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.search.entrypoints=http"
+      - "traefik.http.routers.search.rule=Host(`search.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.search-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.search.middlewares=search-https-redirect"
+      - "traefik.http.routers.search-secure.entrypoints=https"
+      - "traefik.http.routers.search-secure.rule=Host(`search.jimsgarage.co.uk`)"
+      - "traefik.http.routers.search-secure.tls=true"
+      - "traefik.http.routers.search-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.search-secure.service=search"
+      - "traefik.http.services.search.loadbalancer.server.port=8080"
+
+  searxng:
+          image: searxng/searxng:latest
+          restart: unless-stopped
+          depends_on:
+            - gluetun
+          # ports:
+          #     - '${PORT}:8080'
+          network_mode: "service:gluetun"
+          environment:
+            - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME}/
+            - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
+            - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}        
+          volumes:
+              - '/home/ubuntu/docker/searxng/searxng-data:/etc/searxng:rw'
+          # remove for first run then re-enable. Think it's a bug...
+          # cap_drop: 
+          #   - ALL
+          cap_add:
+            - CHOWN
+            - SETGID
+            - SETUID
+          logging:
+            driver: "json-file"
+            options:
+              max-size: "1m"
+              max-file: "1"
+
+networks:
+  proxy:
+    external: true

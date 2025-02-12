@@ -1,0 +1,42 @@
+services:
+    searxng:
+        image: searxng/searxng:latest
+        restart: unless-stopped
+        # ports:
+        #     - '${PORT}:8080'
+        networks:
+          - proxy
+        environment:
+          - SEARXNG_BASE_URL=https://${SEARXNG_HOSTNAME}/
+          - UWSGI_WORKERS=${SEARXNG_UWSGI_WORKERS:-4}
+          - UWSGI_THREADS=${SEARXNG_UWSGI_THREADS:-4}        
+        volumes:
+            - '/home/ubuntu/docker/searxng/searxng-data:/etc/searxng:rw'
+        cap_drop:
+          - ALL
+        cap_add:
+          - CHOWN
+          - SETGID
+          - SETUID
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "1m"
+            max-file: "1"
+        labels:
+          - "traefik.enable=true"
+          - "traefik.docker.network=proxy"
+          - "traefik.http.routers.search.entrypoints=http"
+          - "traefik.http.routers.search.rule=Host(`search.jimsgarage.co.uk`)"
+          - "traefik.http.middlewares.search-https-redirect.redirectscheme.scheme=https"
+          - "traefik.http.routers.search.middlewares=search-https-redirect"
+          - "traefik.http.routers.search-secure.entrypoints=https"
+          - "traefik.http.routers.search-secure.rule=Host(`search.jimsgarage.co.uk`)"
+          - "traefik.http.routers.search-secure.tls=true"
+          - "traefik.http.routers.search-secure.tls.certresolver=cloudflare"
+          - "traefik.http.routers.search-secure.service=search"
+          - "traefik.http.services.search.loadbalancer.server.port=8080"
+
+networks:
+  proxy:
+    external: true
