@@ -1,0 +1,334 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    # container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    env_file:
+      - .env # should default to .env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+    volumes:
+      - /home/ubuntu/docker/searxng/gluetun:/gluetun
+    environment:
+      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=wireguard
+      # OpenVPN:
+      # - OPENVPN_USER=
+      # - OPENVPN_PASSWORD=
+      # Wireguard:
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_TOKEN}
+      - WIREGUARD_ADDRESSES=10.5.0.2/16
+      - SERVER_COUNTRIES=UNITED KINGDOM
+      # Timezone for accurate log times
+      - TZ=Europe/London
+      # Server list updater
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      - UPDATER_PERIOD=24h
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.qbittorrent.entrypoints=http"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.qbittorrent-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.qbittorrent.middlewares=qbittorrent-https-redirect"
+      - "traefik.http.routers.qbittorrent-secure.entrypoints=https"
+      - "traefik.http.routers.qbittorrent-secure.rule=Host(`qbittorrent.jimsgarage.co.uk`)"
+      - "traefik.http.routers.qbittorrent-secure.tls=true"
+      - "traefik.http.routers.qbittorrent-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.qbittorrent-secure.service=qbittorrent"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8085"
+
+      - "traefik.http.routers.jackett.entrypoints=http"
+      - "traefik.http.routers.jackett.rule=Host(`jackett.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.jackett-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.jackett.middlewares=jackett-https-redirect"
+      - "traefik.http.routers.jackett-secure.entrypoints=https"
+      - "traefik.http.routers.jackett-secure.rule=Host(`jackett.jimsgarage.co.uk`)"
+      - "traefik.http.routers.jackett-secure.tls=true"
+      - "traefik.http.routers.jackett-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.jackett-secure.service=jackett"
+      - "traefik.http.services.jackett.loadbalancer.server.port=9117"
+
+      - "traefik.http.routers.sonarr.entrypoints=http"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.sonarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.sonarr.middlewares=sonarr-https-redirect"
+      - "traefik.http.routers.sonarr-secure.entrypoints=https"
+      - "traefik.http.routers.sonarr-secure.rule=Host(`sonarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.sonarr-secure.tls=true"
+      - "traefik.http.routers.sonarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.sonarr-secure.service=sonarr"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+
+      - "traefik.http.routers.prowlarr.entrypoints=http"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.prowlarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.prowlarr.middlewares=prowlarr-https-redirect"
+      - "traefik.http.routers.prowlarr-secure.entrypoints=https"
+      - "traefik.http.routers.prowlarr-secure.rule=Host(`prowlarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.prowlarr-secure.tls=true"
+      - "traefik.http.routers.prowlarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.prowlarr-secure.service=prowlarr"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
+
+      - "traefik.http.routers.radarr.entrypoints=http"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.radarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.radarr.middlewares=radarr-https-redirect"
+      - "traefik.http.routers.radarr-secure.entrypoints=https"
+      - "traefik.http.routers.radarr-secure.rule=Host(`radarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.radarr-secure.tls=true"
+      - "traefik.http.routers.radarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.radarr-secure.service=radarr"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+
+      - "traefik.http.routers.homepage-arr.entrypoints=http"
+      - "traefik.http.routers.homepage-arr.rule=Host(`homepage-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.homepage-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.homepage-arr.middlewares=homepage-arr-https-redirect"
+      - "traefik.http.routers.homepage-arr-secure.entrypoints=https"
+      - "traefik.http.routers.homepage-arr-secure.rule=Host(`homepage-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.homepage-arr-secure.tls=true"
+      - "traefik.http.routers.homepage-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.homepage-arr-secure.service=homepage-arr"
+      - "traefik.http.services.homepage-arr.loadbalancer.server.port=3000"
+
+      - "traefik.http.routers.jellyfin-arr.entrypoints=http"
+      - "traefik.http.routers.jellyfin-arr.rule=Host(`jellyfin-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.jellyfin-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.jellyfin-arr.middlewares=jellyfin-arr-https-redirect"
+      - "traefik.http.routers.jellyfin-arr-secure.entrypoints=https"
+      - "traefik.http.routers.jellyfin-arr-secure.rule=Host(`jellyfin-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.jellyfin-arr-secure.tls=true"
+      - "traefik.http.routers.jellyfin-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.jellyfin-arr-secure.service=jellyfin-arr"
+      - "traefik.http.services.jellyfin-arr.loadbalancer.server.port=8096"
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - WEBUI_PORT=8085
+    volumes:
+      - /home/ubuntu/docker/arr-stack/qbittorrent:/config
+      - /home/ubuntu/docker/arr-stack/qbittorrent/downloads:/downloads
+    depends_on:
+      - gluetun
+    restart: always
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - AUTO_UPDATE=true #optional
+      - RUN_OPTS= #optional
+    volumes:
+      - /home/ubuntu/docker/arr-stack/jackett/data:/config
+      - /home/ubuntu/docker/arr-stack/jackett/blackhole:/downloads
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/sonarr/data:/config
+      - /home/ubuntu/docker/arr-stack/sonarr/tvseries:/tv #optional
+      - /home/ubuntu/docker/arr-stack/sonarr/downloadclient-downloads:/downloads #optional
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/prowlarr/data:/config
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/radarr/data:/config
+      # - /path/to/movies:/movies #optional
+      - /home/ubuntu/docker/arr-stack/qbittorrent/downloads:/downloads #optional
+    restart: unless-stopped
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    network_mode: "service:gluetun"
+    environment:
+      PUID: 1000 # optional, your user id
+      PGID: 1000 # optional, your group id
+    volumes:
+      - /home/ubuntu/docker/arr-stack/homepage:/app/config # Make sure your local config directory exists
+      - /var/run/docker.sock:/var/run/docker.sock:ro # optional, for docker integrations
+    restart: unless-stopped
+
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    network_mode: "service:gluetun"
+    #group_add:
+    #  - '109'  # This needs to be the group id of running `stat -c '%g' /dev/dri/renderD128` on the docker host
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - /home/ubuntu/docker/arr-stack/jellyfin/config:/config
+      - /home/ubuntu/docker/arr-stack/jellyfin/cache:/cache
+      # - /home/ubuntu/YOUR_NAS/Films:/Films:ro
+      # - /home/ubuntu/YOUR_NAS/TVShows:/TVShows:ro
+      # - /home/ubuntu/YOUR_NAS/Audiobooks:/Audiobooks:ro
+      # - /home/ubuntu/YOUR_NAS/Music:/Music:ro
+    #ports: You will need to uncomment if you aren't running through a proxy
+    #  - 8096:8096
+    #  - 8920:8920 #optional
+    #  - 7359:7359/udp #optional
+    #  - 1900:1900/udp #optional
+    #devices: uncomment these and amend if you require GPU accelerated transcoding
+    #  - /dev/dri/renderD128:/dev/dri/renderD128
+    #  - /dev/dri/card0:/dev/dri/card0
+    restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
+    # Edit the file at /etc/systemd/resolved.conf and change the line DNSStubListener=yes to no, then use command sudo service systemd-resolved restart
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    #  - "67:67/udp" # Only required if you are using Pi-hole as your DHCP server
+      - "85:80/tcp" # leave open to access for the first time
+    environment:
+      TZ: 'Europe/London'
+      WEBPASSWORD: 'arrghh!'
+    # Volumes store your data between container upgrades
+    networks:
+      proxy:
+      wg-easy:
+        ipv4_address: 10.8.1.2
+    volumes:
+      - '/home/ubuntu/docker/arr-stack/pihole/etc-pihole:/etc/pihole'
+      - '/home/ubuntu/docker/arr-stack/pihole/etc-dnsmasq.d:/etc/dnsmasq.d'
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    #cap_add:
+    #  - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.pihole-arr.entrypoints=http"
+      - "traefik.http.routers.pihole-arr.rule=Host(`pihole-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.pihole-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pihole-arr.middlewares=pihole-arr-https-redirect"
+      - "traefik.http.routers.pihole-arr-secure.entrypoints=https"
+      - "traefik.http.routers.pihole-arr-secure.rule=Host(`pihole-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.pihole-arr-secure.tls=true"
+      - "traefik.http.routers.pihole-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.pihole-arr-secure.service=pihole-arr"
+      - "traefik.http.services.pihole-arr.loadbalancer.server.port=80"
+
+  wg-easy:
+    environment:
+      # Change Language:
+      # (Supports: en, ua, ru, tr, no, pl, fr, de, ca, es, ko, vi, nl, is, pt, chs, cht, it, th, hi, ja, si)
+      - LANG=en
+      # ?? Required:
+      # Change this to your host's public address
+      - WG_HOST=raspberrypi.local
+
+      # Optional:
+      # - PASSWORD_HASH=$$2y$$10$$hBCoykrB95WSzuV4fafBzOHWKu9sbyVa34GJr8VV5R/pIelfEMYyG # (needs double $$, hash of 'foobar123'; see "How_to_generate_an_bcrypt_hash.md" for generate the hash)
+      # - PORT=51821
+      # - WG_PORT=51820
+      # - WG_CONFIG_PORT=92820
+      - WG_DEFAULT_ADDRESS=10.8.0.x
+      - WG_DEFAULT_DNS=10.8.1.2
+      # - WG_MTU=1420
+      # - WG_ALLOWED_IPS=192.168.15.0/24, 10.0.1.0/24
+      # - WG_PERSISTENT_KEEPALIVE=25
+      # - WG_PRE_UP=echo "Pre Up" > /etc/wireguard/pre-up.txt
+      # - WG_POST_UP=echo "Post Up" > /etc/wireguard/post-up.txt
+      # - WG_PRE_DOWN=echo "Pre Down" > /etc/wireguard/pre-down.txt
+      # - WG_POST_DOWN=echo "Post Down" > /etc/wireguard/post-down.txt
+      # - UI_TRAFFIC_STATS=true
+      # - UI_CHART_TYPE=0 # (0 Charts disabled, 1 # Line chart, 2 # Area chart, 3 # Bar chart)
+      # - WG_ENABLE_ONE_TIME_LINKS=true
+      # - UI_ENABLE_SORT_CLIENTS=true
+      # - WG_ENABLE_EXPIRES_TIME=true
+      # - ENABLE_PROMETHEUS_METRICS=false
+      # - PROMETHEUS_METRICS_PASSWORD=$$2a$$12$$vkvKpeEAHD78gasyawIod.1leBMKg8sBwKW.pQyNsq78bXV3INf2G # (needs double $$, hash of 'prometheus_password'; see "How_to_generate_an_bcrypt_hash.md" for generate the hash)
+
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: wg-easy
+    volumes:
+      - /home/ubuntu/docker/arr-stack/wireguard-easy/etc_wireguard:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+    #  - "51821:51821/tcp"
+    restart: unless-stopped
+    networks:
+        proxy:
+        wg-easy:
+          ipv4_address: 10.8.1.3
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      # - NET_RAW # ?? Uncomment if using Podman
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.wireguard-arr.entrypoints=http"
+      - "traefik.http.routers.wireguard-arr.rule=Host(`wireguard-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.wireguard-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.wireguard-arr.middlewares=wireguard-arr-https-redirect"
+      - "traefik.http.routers.wireguard-arr-secure.entrypoints=https"
+      - "traefik.http.routers.wireguard-arr-secure.rule=Host(`wireguard-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.wireguard-arr-secure.tls=true"
+      - "traefik.http.routers.wireguard-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.wireguard-arr-secure.service=wireguard-arr"
+      - "traefik.http.services.wireguard-arr.loadbalancer.server.port=51821"
+
+networks:
+  proxy:
+    external: true
+  wg-easy:
+    ipam:
+      config:
+        - subnet: 10.8.1.0/24
