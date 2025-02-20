@@ -1,0 +1,77 @@
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  cloudflared:
+    container_name: cloudflared
+    # Restart on crashes and on reboots
+    restart: unless-stopped
+    image: cloudflare/cloudflared:latest
+    command: proxy-dns
+    environment:
+      - "TUNNEL_DNS_UPSTREAM=https://1.1.1.1/dns-query,https://1.0.0.1/dns-query,https://9.9.9.9/dns-query,https://149.112.112.9/dns-query"
+
+      # Listen on an unprivileged port
+      - "TUNNEL_DNS_PORT=5053"
+
+      # Listen on all interfaces
+      - "TUNNEL_DNS_ADDRESS=0.0.0.0"
+
+    # Attach cloudflared only to the private network
+    networks:
+      pihole_internal:
+        ipv4_address: 172.70.9.2
+    security_opt:
+      - no-new-privileges:true
+
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    #  - "67:67/udp" DHCP - uncomment if using it
+      - "500:80/tcp"
+    #  - "443:443/tcp"
+    networks:
+      pihole_internal:
+        ipv4_address: 172.70.9.3
+      proxy:
+    environment:
+      TZ: 'Europe/London'
+      # Set a password to access the web interface. Not setting one will result in a random password being assigned
+      FTLCONF_webserver_api_password: 'correct horse battery staple'
+      # If using Docker's default `bridge` network setting the dns listening mode should be set to 'all'3
+      FTLCONF_dns_listeningMode: 'all'
+      FTLCONF_dns_upstreams: '172.70.9.2#5053'
+    # Volumes store your data between container upgrades
+    volumes:
+      - '/home/ubuntu/docker/pihole/:/etc/pihole/'
+      - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    # Recommended but not required (DHCP needs NET_ADMIN)
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    #cap_add:
+    #  - NET_ADMIN
+    restart: unless-stopped
+    depends_on:
+      - cloudflared
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.entrypoints=http"
+      - "traefik.http.routers.pihole.rule=Host(`piholev6.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.pihole-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pihole.middlewares=pihole-https-redirect"
+      - "traefik.http.routers.pihole-secure.entrypoints=https"
+      - "traefik.http.routers.pihole-secure.rule=Host(`piholev6.jimsgarage.co.uk`)"
+      - "traefik.http.routers.pihole-secure.tls=true"
+      - "traefik.http.routers.pihole-secure.service=pihole"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+networks:
+  pihole_internal:
+     ipam:
+       config:
+         - subnet: 172.70.9.0/29
+     name: pihole_internal
+  proxy:
+    external: true
