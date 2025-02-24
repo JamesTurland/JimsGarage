@@ -1,0 +1,33 @@
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caddy
+    restart: unless-stopped
+    env_file: 
+      - .env
+    environment:
+      - CLOUDFLARE_EMAIL=${CF_EMAIL}
+      - CLOUDFLARE_API_TOKEN=${CF_API_TOKEN}
+      - ACME_AGREE=true
+    ports:
+      - 2019:2019 # remove if you do not want admin API
+      - 80:80
+      - 443:443
+    volumes:
+      - caddy-config:/config
+      - caddy-data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./index.html:/usr/share/caddy/index.html
+    networks:
+      - caddy # add other containers onto this network to use dns name
+
+volumes:
+  caddy-config:
+  caddy-data:
+
+# create this first before running the docker-compose - docker network create caddy
+networks:
+  caddy:
+    external: true
