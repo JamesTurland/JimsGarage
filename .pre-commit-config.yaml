@@ -1,13 +1,52 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
 ---
+# fail_fast: true
+minimum_pre_commit_version: 1.18.1
+# exclude: docs/_build/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: check-symlinks
-      - id: destroyed-symlinks
       - id: detect-aws-credentials
         args: [--allow-missing-credentials]
+      - id: trailing-whitespace # trims trailing whitespace.
+      - id: requirements-txt-fixer
+        exclude: ".(md|rst)$"
+      - id: end-of-file-fixer # ensures that a file is either empty, or ends with one newline.
+      - id: check-ast # simply checks whether the files parse as valid python.
+      - id: check-merge-conflict # checks for files that contain merge conflict strings.
+      - id: check-symlinks # checks for symlinks which do not point to anything.
+      - id: check-added-large-files # prevents giant files from being committed.
+        args: ["--maxkb=4096"]
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-toml # checks toml files for parseable syntax.
+      - id: check-docstring-first # checks a common error of defining a docstring after code.
+      - id: check-executables-have-shebangs # ensures that (non-binary) executables have a shebang.
+      - id: check-shebang-scripts-are-executable
+      - id: check-yaml # checks yaml files for parseable syntax.
+      - id: debug-statements # checks for debugger imports and py37+ `breakpoint()` calls in python source.
+      - id: destroyed-symlinks # detects symlinks which are changed to regular files with a content of a path which that symlink was pointing to.
+      - id: detect-private-key # detects the presence of private keys.
+      - id: mixed-line-ending # replaces or checks mixed line ending.
+        args: ["--fix=lf"]
+
   - repo: https://github.com/IamTheFij/docker-pre-commit
     rev: v3.0.1
     hooks:
       - id: docker-compose-check
+
+  - repo: https://github.com/pre-commit/pre-commit
+    rev: v3.5.0
+    hooks:
+      - id: validate_manifest
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 2.1.5
+    hooks:
+      #- id: git-check # Configure in .gitattributes
+      - id: shellcheck
+      #  exclude: ".bats$"
+      - id: shfmt
+      #  exclude: ".bats$"
