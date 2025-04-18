@@ -1,0 +1,72 @@
+services:
+  client:
+    image: bluewaveuptime/uptime_client:latest
+    restart: always
+    environment:
+      UPTIME_APP_API_BASE_URL: "https://checkmate.jimsgarage.co.uk/api/v1"
+    #ports:
+    #  - "80:80"
+    #  - "443:443"
+    depends_on:
+      - server
+    networks:
+      - proxy
+      - checkmate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.checkmate.entrypoints=http"
+      - "traefik.http.routers.checkmate.rule=Host(`checkmate.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.checkmate-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.checkmate.middlewares=checkmate-https-redirect"
+      - "traefik.http.routers.checkmate-secure.entrypoints=https"
+      - "traefik.http.routers.checkmate-secure.rule=Host(`checkmate.jimsgarage.co.uk`)"
+      - "traefik.http.routers.checkmate-secure.tls=true"
+      - "traefik.http.routers.checkmate-secure.service=checkmate"
+      - "traefik.http.services.checkmate.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+  server:
+    image: bluewaveuptime/uptime_server:latest
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - mongodb
+    environment:
+      - DB_CONNECTION_STRING=mongodb://mongodb:27017/uptime_db
+      - REDIS_HOST=redis
+      - PAGESPEED_API_KEY=YOUR_API_KEY
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - checkmate
+  redis:
+    image: bluewaveuptime/uptime_redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - checkmate
+  mongodb:
+    image: bluewaveuptime/uptime_database_mongo:latest
+    restart: always
+    volumes:
+      - ./mongo/data:/data/db
+    command: ["mongod", "--quiet"]
+    ports:
+      - "27017:27017"
+    networks:
+      - checkmate
+
+networks:
+  checkmate:
+  proxy:
+    external: true
