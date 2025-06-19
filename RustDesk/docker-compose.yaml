@@ -1,0 +1,39 @@
+services:
+  hbbs:
+    container_name: hbbs
+    image: rustdesk/rustdesk-server:latest
+    command: hbbs
+    volumes:
+      - ./data:/root
+    # network_mode: "host" # Uncomment this line if you want to use host networking
+    networks:
+      - rustdesk
+    ports:
+    # If you do not need web client support, the corresponding ports 21118, 21119 can be disabled.
+      # - "21114:21114/tcp"  # (TCP): used for web console, only available in Pro version.
+      - "21115:21115"  # used for the NAT type test
+      - "21116:21116"  # should be enabled both for TCP and UDP. is used for the ID registration and heartbeat service. 21116/TCP is used for TCP hole punching and connection service
+      - "21116:21116/udp"    # should be enabled both for TCP and UDP. is used for the ID registration and heartbeat service. 21116/TCP is used for TCP hole punching and connection service
+      - "21118:21118"  #  used to support web clients
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+
+  hbbr:
+    container_name: hbbr
+    image: rustdesk/rustdesk-server:latest
+    command: hbbr
+    volumes:
+      - ./data:/root
+    # network_mode: "host" # Uncomment this line if you want to use host networking
+    networks:
+      - rustdesk
+    ports:
+    # If you do not need web client support, the corresponding ports 21118, 21119 can be disabled.
+      - "21117:21117"  # used for the relay service
+      - "21119:21119"  # used to support web clients
+    restart: unless-stopped
+
+
+networks:
+  rustdesk:
