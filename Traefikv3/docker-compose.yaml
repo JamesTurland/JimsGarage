@@ -13,7 +13,7 @@ services:
     env_file:
       - .env # store other secrets e.g., dashboard password
     networks:
-       proxy:
+       - proxy
     ports:
       - 80:80
       - 443:443
