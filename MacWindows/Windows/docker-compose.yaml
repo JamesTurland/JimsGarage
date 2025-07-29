@@ -7,7 +7,7 @@ services:
       DISK_SIZE: "50G"
       RAM_SIZE: "4G"
       CPU_CORES: "4"
-    #  DHCP: "Y" # if enabled you must also create a macvlan to place the container on
+    #  DHCP: "Y" # if enabled you must also create a macvlan
       USERNAME: "james"
       PASSWORD: "jimsgarage"
       LANGUAGE: "ENGLISH"
