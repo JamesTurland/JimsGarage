@@ -1,0 +1,125 @@
+version: "3"
+services:
+  #UI dashboard
+  dashboard:
+    image: netbirdio/dashboard:latest
+    restart: unless-stopped
+    #ports:
+    #  - 80:80
+    #  - 443:443
+    environment:
+      # Endpoints
+      - NETBIRD_MGMT_API_ENDPOINT=https://netbird.jimsgarage.co.uk:443
+      - NETBIRD_MGMT_GRPC_API_ENDPOINT=https://netbird.jimsgarage.co.uk:443
+      # OIDC
+      - AUTH_AUDIENCE=q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU
+      - AUTH_CLIENT_ID=q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU
+      - AUTH_CLIENT_SECRET=
+      - AUTH_AUTHORITY=https://authentik.jimsgarage.co.uk/application/o/netbird/
+      - USE_AUTH0=false
+      - AUTH_SUPPORTED_SCOPES=openid profile email offline_access api
+      - AUTH_REDIRECT_URI=
+      - AUTH_SILENT_REDIRECT_URI=
+      - NETBIRD_TOKEN_SOURCE=accessToken
+      # SSL
+      - NGINX_SSL_PORT=443
+      # Letsencrypt
+      - LETSENCRYPT_DOMAIN=
+      - LETSENCRYPT_EMAIL=
+    volumes:
+      - netbird-letsencrypt:/etc/letsencrypt/
+    networks:
+      - proxy
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.netbird-dashboard.entrypoints=https,http
+    - traefik.http.routers.netbird-dashboard.rule=Host(`netbird.jimsgarage.co.uk`)
+    - traefik.http.routers.netbird-dashboard.tls=true
+    - traefik.http.routers.netbird-dashboard.service=netbird@docker
+    - traefik.http.services.netbird.loadbalancer.server.port=80
+    - traefik.docker.network=proxy
+
+  # Signal
+  signal:
+    image: netbirdio/signal:latest
+    restart: unless-stopped
+    volumes:
+      - netbird-signal:/var/lib/netbird
+    #ports:
+    #  - 10000:80
+  #      # port and command for Let's Encrypt validation
+  #      - 443:443
+  #    command: ["--letsencrypt-domain", "", "--log-file", "console"]
+    networks:
+      - proxy
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.netbird-signal.entrypoints=https,http
+    - traefik.http.routers.netbird-signal.rule=Host(`netbird.jimsgarage.co.uk`) && PathPrefix(`/signalexchange.SignalExchange/`)
+    - traefik.http.routers.netbird-signal.tls=true
+    - traefik.http.routers.netbird-signal.service=signal@docker
+    - traefik.http.services.signal.loadbalancer.server.port=80
+    - traefik.http.services.signal.loadbalancer.server.scheme=h2c
+    - traefik.docker.network=proxy
+
+  # Management
+  management:
+    image: netbirdio/management:latest
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+    volumes:
+      - netbird-mgmt:/var/lib/netbird
+      - netbird-letsencrypt:/etc/letsencrypt:ro
+      - ./management.json:/etc/netbird/management.json
+    #ports:
+    #  - 443:443 #API port
+  #    # command for Let's Encrypt validation without dashboard container
+  #    command: ["--letsencrypt-domain", "", "--log-file", "console"]
+    command: [
+      "--port", "443",
+      "--log-file", "console",
+      "--disable-anonymous-metrics=false",
+      "--single-account-mode-domain=netbird.jimsgarage.co.uk",
+      "--dns-domain=jimsgarage.co.uk"
+      ]
+    networks:
+      - proxy
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.netbird-api.entrypoints=https,http
+    - traefik.http.routers.netbird-api.rule=Host(`netbird.jimsgarage.co.uk`) && PathPrefix(`/api`)
+    - traefik.http.routers.netbird-api.tls=true
+    - traefik.http.routers.netbird-api.service=api
+    - traefik.http.services.api.loadbalancer.server.port=443
+
+    - traefik.http.routers.netbird-management.entrypoints=https,http
+    - traefik.http.routers.netbird-management.rule=Host(`netbird.jimsgarage.co.uk`) && PathPrefix(`/management.ManagementService/`)
+    - traefik.http.routers.netbird-management.tls=true
+    - traefik.http.routers.netbird-management.service=netbird-management
+    - traefik.http.services.netbird-management.loadbalancer.server.port=443
+    - traefik.http.services.netbird-management.loadbalancer.server.scheme=h2c
+
+    - traefik.docker.network=proxy
+
+  # Coturn
+  coturn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    domainname: netbird.jimsgarage.co.uk
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+    #      - ./privkey.pem:/etc/coturn/private/privkey.pem:ro
+    #      - ./cert.pem:/etc/coturn/certs/cert.pem:ro
+    network_mode: host
+    command:
+      - -c /etc/turnserver.conf
+
+volumes:
+  netbird-mgmt:
+  netbird-signal:
+  netbird-letsencrypt:
+
+networks:
+  proxy:
+    external: true

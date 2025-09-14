@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file: .env
+    restart: always
+    volumes:
+      - /home/ubuntu/docker/linkwarden/pgdata:/var/lib/postgresql/data
+    networks:
+      - linkwarden
+  linkwarden:
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
+    restart: always
+    # build: . # uncomment this line to build from source
+    image: ghcr.io/linkwarden/linkwarden:latest # comment this line to build from source
+    #ports:
+    #  - 3000:3000
+    volumes:
+      - /home/ubuntu/docker/linkwarden/data:/data/data
+    depends_on:
+      - postgres
+    networks:
+      - proxy
+      - linkwarden
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.linkwarden.entrypoints=http"
+      - "traefik.http.routers.linkwarden.rule=Host(`linkwarden.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.linkwarden-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.linkwarden.middlewares=linkwarden-https-redirect"
+      - "traefik.http.routers.linkwarden-secure.entrypoints=https"
+      - "traefik.http.routers.linkwarden-secure.rule=Host(`linkwarden.jimsgarage.co.uk`)"
+      - "traefik.http.routers.linkwarden-secure.tls=true"
+      - "traefik.http.routers.linkwarden-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.linkwarden-secure.service=linkwarden"
+      - "traefik.http.services.linkwarden.loadbalancer.server.port=3000" # make sure the loadbalancer is the last line!!!
+
+networks:
+  proxy:
+    external: true
+  linkwarden:

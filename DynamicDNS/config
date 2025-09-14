@@ -1,0 +1,20 @@
+## WARNING: set deamon at least to 600 seconds if you use checkip or you could
+## get banned from their service.
+daemon=600  # check every 600 seconds (10mins)
+ssl=yes     # use ssl-support
+use=web     # acquire current IP address via web URL
+
+# Override IP address provider since SSL=yes currently breaks
+# the default (non-SSL) provider in my version of ddclient.
+# GitHub issue: https://github.com/ddclient/ddclient/issues/597
+web=checkip.dyndns.org/
+web-skip='Current IP Address:' # Probably not needed but doesn't hurt
+
+##
+## Cloudflare
+protocol=cloudflare,        \
+zone=example.com,            \
+ttl=1,                      \
+login=email,    \
+password=YOUR_API_TOKEN    \
+example.com,sub1.example.com,sub2.example.com,sub3.example.com

@@ -1,0 +1,11 @@
+---
+# Generate Machine Configurations. This is using the qemu agent as per: https://www.talos.dev/v1.7/talos-guides/install/virtualized-platforms/proxmox/
+- name: Apply config to first worker
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ worker_1 }} --file {{ config_directory }}/worker.yaml
+  changed_when: true
+
+- name: Apply config to second worker
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ worker_2 }} --file {{ config_directory }}/worker.yaml
+  changed_when: true

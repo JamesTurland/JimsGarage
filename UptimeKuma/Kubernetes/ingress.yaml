@@ -1,0 +1,26 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: uptime-kuma
+  namespace: uptime-kuma
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.uptime-kuma.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: uptime-kuma
+          port: 80
+    - match: Host(`uptime-kuma.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: uptime-kuma
+          port: 80
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: yourdomain-tls

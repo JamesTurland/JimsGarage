@@ -1,0 +1,33 @@
+{
+        admin 0.0.0.0:2019
+}
+
+*.jimsgarage.co.uk {
+        tls {
+                dns cloudflare {env.CF_API_TOKEN}
+                propagation_delay 2m
+                resolvers 1.1.1.1
+        }
+
+        @caddy host caddy.jimsgarage.co.uk
+        handle @caddy {
+                root * /usr/share/caddy
+                php_fastcgi localhost:80
+                file_server
+        }
+
+        @trueNAS host truenas.jimsgarage.co.uk
+        handle @trueNAS {
+                reverse_proxy 192.168.6.2:80
+        }
+
+        @portainer host caddy-portainer.jimsgarage.co.uk
+        handle @portainer {
+                reverse_proxy https://portainer:9443 {
+                    transport http {
+                            tls
+                            tls_insecure_skip_verify
+                    }
+                }
+        }
+}

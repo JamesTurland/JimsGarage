@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+  headscale:
+    image: headscale/headscale:v0.23.0-alpha12
+    container_name: headscale
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ./conf:/etc/headscale
+      - headscale-data:/var/lib/headscale
+    entrypoint: headscale serve
+    networks:
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      # Configure service and router
+      traefik.http.services.headscale.loadbalancer.server.port: 8080
+      traefik.http.services.headscale.loadbalancer.server.scheme: http
+      traefik.http.routers.headscale.rule: Host(`tailscale.yourdomain.co.uk`)
+      traefik.http.routers.headscale.entrypoints: https
+      traefik.http.routers.headscale.tls.certresolver: cloudflare
+      traefik.http.routers.headscale.service: headscale
+      # Configure CORS middleware if needed
+      traefik.http.middlewares.headscale-cors.headers.accesscontrolallowmethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      traefik.http.middlewares.headscale-cors.headers.accesscontrolallowheaders: "*"
+      traefik.http.middlewares.headscale-cors.headers.accesscontrolalloworiginlist: "https://headscale.yourdomain.co.uk, https://headscale2.yourdomain.co.uk"  # Add other origins if needed
+      traefik.http.middlewares.headscale-cors.headers.accesscontrolmaxage: 100
+      traefik.http.middlewares.headscale-cors.headers.addvaryheader: true
+      traefik.http.routers.headscale.middlewares: headscale-cors
+      # UDP ports for DERP, etc
+      traefik.udp.services.headscale-udp-41641.loadbalancer.server.port: 41641
+      traefik.udp.services.headscale-udp-3478.loadbalancer.server.port: 3478
+
+  headscale-admin:
+    image: goodieshq/headscale-admin:latest
+    container_name: headscale-admin
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      traefik.http.services.headscale-admin2.loadbalancer.server.port: 80
+      traefik.http.services.headscale-admin2.loadbalancer.server.scheme: http
+      traefik.http.routers.headscale-admin2.rule: Host(`headscale2.yourdomain.co.uk`) && PathPrefix(`/admin`)
+      traefik.http.routers.headscale-admin2.entrypoints: https
+      traefik.http.routers.headscale-admin2.tls.certresolver: cloudflare
+
+  headscale-ui:
+    image: ghcr.io/gurucomputing/headscale-ui:latest
+    restart: unless-stopped
+    container_name: headscale-ui
+    networks:
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      traefik.http.services.headscale-admin.loadbalancer.server.port: 80
+      traefik.http.services.headscale-admin.loadbalancer.server.scheme: http
+      traefik.http.routers.headscale-admin.rule: Host(`headscale.yourdomain.co.uk`)
+      traefik.http.routers.headscale-admin.entrypoints: https
+      traefik.http.routers.headscale-admin.tls.certresolver: cloudflare
+
+
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  headscale-data:

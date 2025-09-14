@@ -1,0 +1,33 @@
+services:
+    zigbee2mqtt:
+        container_name: zigbee2mqtt
+        image: ghcr.io/koenkk/zigbee2mqtt
+        restart: unless-stopped
+        volumes:
+            - /home/ubuntu/docker/zigbee2mqtt/data:/app/data # persistent data storage
+        ports:
+            # Frontend port
+            - 8080:8080
+        environment:
+            - TZ=Europe/London
+        #devices:
+            # Make sure this matched your adapter location
+            # not required as we'll be connecting via Network - however USB devices can be used this way
+            # - /dev/serial/by-id/usb-Texas_Instruments_TI_CC2531_USB_CDC___0X00124B0018ED3DDF-if00:/dev/ttyACM0
+            
+    # Uncomment the following lines if you want to use Mosquitto as a broker
+    # mosquitto:
+    #     container_name: mosquitto
+    #     image: eclipse-mosquitto:latest
+    #     restart: always
+    #     deploy:
+    #     resources:
+    #         limits:
+    #         memory: 256M
+    #     ports:
+    #     - "1883:1883"
+    #     - "9001:9001"
+    #     volumes:
+    #     - /home/ubuntu/docker/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    #     - /home/ubuntu/docker/mosquitto/data:/mosquitto/data
+    #     - /home/ubuntu/docker/mosquitto/log:/mosquitto/log

@@ -1,0 +1,3 @@
+---
+kube_vip_version: v0.8.0
+vip_interface: eth0

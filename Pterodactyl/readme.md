@@ -1,0 +1,1 @@
+1. docker compose run --rm panel php artisan p:user:make --email=admin@domain.com --username=admin --name-first=admin --name-last=user --password=admin --admin=1 --no-password

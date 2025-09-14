@@ -1,0 +1,672 @@
+secrets:
+  cf-token:
+    file: ./cf-token
+
+services:
+###############################################################################################################
+###############################################################################################################
+# TRAEFIK
+# See video: https://youtu.be/CmUzMi5QLzI
+# DUE TO COMPLEXITY, THIS WILL PULL A TEST CERTIFICATE. TO CHANGE, EDIT THE TRAEFIK.YAML FILE
+###############################################################################################################
+###############################################################################################################
+  traefik:
+    image: traefik:latest # or traefik:v3.3 to pin a version
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true # helps to increase security
+    secrets:
+      - cf-token # the secret at the top of this file
+    env_file:
+      - .env # store other secrets e.g., dashboard password
+    networks:
+       proxy:
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      # DUE TO COMPLEXITY, THIS WILL PULL A TEST CERTIFICATE. TO CHANGE, EDIT THE TRAEFIK.YAML FILE
+      - TRAEFIK_DASHBOARD_CREDENTIALS=${TRAEFIK_DASHBOARD_CREDENTIALS}
+      # - CF_API_EMAIL=your@email.com # Cloudflare email
+      # - CF_DNS_API_TOKEN=YOUR-TOKEN # Cloudflare API Token
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf-token # see https://doc.traefik.io/traefik/https/acme/#providers
+      # token file is the proper way to do it
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${WORKING_DIR}/traefik/traefik.yaml:/traefik.yaml:ro
+      # you will need to create the below acem.json before running and set permissions to 600
+      - ${WORKING_DIR}/traefik/acme.json:/acme.json
+      - ${WORKING_DIR}/traefik/config.yaml:/config.yaml:ro
+      - ${WORKING_DIR}/traefik/logs:/var/log/traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefik-docker.$DOMAIN`)"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_CREDENTIALS}"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik-docker.$DOMAIN`)"
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=$DOMAIN"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.$DOMAIN"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+
+###############################################################################################################
+###############################################################################################################
+# CROWDSEC
+# See video: https://youtu.be/bGOANkuxRNA
+###############################################################################################################
+###############################################################################################################
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    environment:
+      GID: "${GID-1000}"
+      COLLECTIONS: "crowdsecurity/traefik"
+    depends_on:
+      - 'traefik'
+    volumes:
+      - ./acquis.yaml:/etc/crowdsec/acquis.yaml
+      - ${WORKING_DIR}/crowdsec/db:/var/lib/crowdsec/data/
+      - ${WORKING_DIR}/crowdsec/config:/etc/crowdsec/
+      - ${WORKING_DIR}/traefik/logs:/var/log/traefik/:ro
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  bouncer-traefik:
+    image: docker.io/fbonalair/traefik-crowdsec-bouncer:latest
+    container_name: bouncer-traefik
+    environment:
+      CROWDSEC_BOUNCER_API_KEY: a946jLUgh8AAoThQFEAfaTa5YkI5LSNhGWkzkdtTIns # generate in crowdsec container - cscli bouncer add - then add here and redeploy
+      CROWDSEC_AGENT_HOST: crowdsec:8080
+    networks:
+      - proxy # same network as traefik + crowdsec
+    depends_on:
+      - crowdsec
+    restart: unless-stopped
+
+###############################################################################################################
+###############################################################################################################
+# PIHOLE & CLOUDFLARED
+# See video: https://youtu.be/mnry95ay0Bk
+###############################################################################################################
+###############################################################################################################
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+  cloudflared:
+    container_name: cloudflared
+    # Restart on crashes and on reboots
+    restart: unless-stopped
+    image: cloudflare/cloudflared:latest
+    command: proxy-dns
+    environment:
+      - "TUNNEL_DNS_UPSTREAM=https://1.1.1.1/dns-query,https://1.0.0.1/dns-query,https://9.9.9.9/dns-query,https://149.112.112.9/dns-query"
+      # Listen on an unprivileged port
+      - "TUNNEL_DNS_PORT=5053"
+      # Listen on all interfaces
+      - "TUNNEL_DNS_ADDRESS=0.0.0.0"
+    # Attach cloudflared only to the private network
+    networks:
+      pihole_internal:
+        ipv4_address: 172.70.9.2
+    security_opt:
+      - no-new-privileges:true
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+    # On Ubuntu port 53 is in use by resolved. Edit the file at /etc/systemd/resolved.conf and change the line DNSStubListener=yes to no, then use command sudo service systemd-resolved restart
+      - "53:53/tcp"
+      - "53:53/udp"
+    #  - "67:67/udp" DHCP - uncomment if using it
+      - "500:80/tcp" # left port 500 open in case you need to connect via IP:500
+    #  - "443:443/tcp"
+    networks:
+      pihole_internal:
+        ipv4_address: 172.70.9.3
+      proxy:
+    environment:
+      TZ: 'Europe/London'
+      # Set a password to access the web interface. Not setting one will result in a random password being assigned
+      FTLCONF_webserver_api_password: 'correct horse battery staple'
+      # If using Docker's default `bridge` network setting the dns listening mode should be set to 'all'3
+      FTLCONF_dns_listeningMode: 'all'
+      FTLCONF_dns_upstreams: '172.70.9.2#5053'
+    # Volumes store your data between container upgrades
+    volumes:
+      # - './custom.list:/etc/pihole/hosts/custom.list' # remember to add your domains to this
+      - '${WORKING_DIR}/pihole/:/etc/pihole/'
+      - '${WORKING_DIR}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    # Recommended but not required (DHCP needs NET_ADMIN)
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    #cap_add:
+    #  - NET_ADMIN
+    restart: unless-stopped
+    depends_on:
+      - cloudflared
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.entrypoints=http"
+      - "traefik.http.routers.pihole.rule=Host(`piholev6.$DOMAIN`)"
+      - "traefik.http.middlewares.pihole-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pihole.middlewares=pihole-https-redirect"
+      - "traefik.http.routers.pihole-secure.entrypoints=https"
+      - "traefik.http.routers.pihole-secure.rule=Host(`piholev6.$DOMAIN`)"
+      - "traefik.http.routers.pihole-secure.tls=true"
+      - "traefik.http.routers.pihole-secure.service=pihole"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+###############################################################################################################
+###############################################################################################################
+# AUTHENTIK
+# See video: https://youtu.be/1bTSOdYiIOQ
+###############################################################################################################
+###############################################################################################################
+
+  postgresql:
+    image: docker.io/library/postgres:16-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    volumes:
+      - database:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
+      POSTGRES_USER: ${PG_USER:-authentik}
+      POSTGRES_DB: ${PG_DB:-authentik}
+    env_file:
+      - .env
+  redis:
+    image: docker.io/library/redis:alpine
+    command: --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    volumes:
+      - redis:/data
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.2.1}
+    restart: unless-stopped
+    command: server
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+    volumes:
+      - ${WORKING_DIR}/authentik/media:/media
+      - ${WORKING_DIR}/authentik/custom-templates:/templates
+    env_file:
+      - .env
+    #ports:
+    #  - "${COMPOSE_PORT_HTTP:-9000}:9000"
+    #  - "${COMPOSE_PORT_HTTPS:-9443}:9443"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.authentik.entrypoints=http"
+      - "traefik.http.routers.authentik.rule=Host(`authentik.$DOMAIN`)"
+      - "traefik.http.middlewares.authentik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.authentik.middlewares=authentik-https-redirect"
+      - "traefik.http.routers.authentik-secure.entrypoints=https"
+      - "traefik.http.routers.authentik-secure.rule=Host(`authentik.$DOMAIN`)"
+      - "traefik.http.routers.authentik-secure.tls=true"
+      - "traefik.http.routers.authentik-secure.service=authentik"
+      - "traefik.http.services.authentik.loadbalancer.server.scheme=https" 
+      - "traefik.http.services.authentik.loadbalancer.server.port=9443"
+      - "traefik.docker.network=proxy"
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.2.1}
+    restart: unless-stopped
+    command: worker
+    environment:
+      AUTHENTIK_REDIS__HOST: redis
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+    # `user: root` and the docker socket volume are optional.
+    # See more for the docker socket integration here:
+    # https://goauthentik.io/docs/outposts/integrations/docker
+    # Removing `user: root` also prevents the worker from fixing the permissions
+    # on the mounted folders, so when removing this make sure the folders have the correct UID/GID
+    # (1000:1000 by default)
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKING_DIR}/authentik/media:/media
+      - ${WORKING_DIR}/authentik/certs:/certs
+      - ${WORKING_DIR}/authentik/custom-templates:/templates
+    env_file:
+      - .env
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+###############################################################################################################
+###############################################################################################################
+# PORTAINER
+###############################################################################################################
+###############################################################################################################
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - 8000:8000
+      - 9443:9443
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.entrypoints=http"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.$DOMAIN`)"
+      - "traefik.http.middlewares.portainer-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.portainer.middlewares=portainer-https-redirect"
+      - "traefik.http.routers.portainer-secure.entrypoints=https"
+      - "traefik.http.routers.portainer-secure.rule=Host(`portainer.$DOMAIN`)"
+      - "traefik.http.routers.portainer-secure.tls=true"
+      - "traefik.http.routers.portainer-secure.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.scheme=https" 
+      - "traefik.http.services.portainer.loadbalancer.server.port=9443"
+      - "traefik.docker.network=proxy"
+
+###############################################################################################################
+###############################################################################################################
+# GOTIFY
+# See video: https://youtu.be/Ft69PY7iitw
+###############################################################################################################
+###############################################################################################################
+
+  gotify:
+    image: gotify/server
+    container_name: gotify
+    volumes:
+      - ${WORKING_DIR}/gotify:/app/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      proxy:
+    environment:
+      - TZ=Europe/London
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gotify.entrypoints=http"
+      - "traefik.http.routers.gotify.rule=Host(`gotify.$DOMAIN`)"
+      - "traefik.http.middlewares.gotify-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.gotify.middlewares=gotify-https-redirect"
+      - "traefik.http.routers.gotify-secure.entrypoints=https"
+      - "traefik.http.routers.gotify-secure.rule=Host(`gotify.$DOMAIN`)"
+      - "traefik.http.routers.gotify-secure.tls=true"
+      - "traefik.http.routers.gotify-secure.service=gotify"
+      - "traefik.http.services.gotify.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+###############################################################################################################
+###############################################################################################################
+# HOMEPAGE
+# See video: https://youtu.be/4AwUNy2eztA
+###############################################################################################################
+###############################################################################################################
+
+  homepage:
+    image: ghcr.io/benphelps/homepage:latest
+    container_name: homepage
+    # uncomment if you do not want to run as root
+    #user: 1000:1000
+    # uncomment if you are not using a reverse proxy
+    #ports:
+    #  - 3000:3000
+    volumes:
+      - ${WORKING_DIR}/homepage/config:/app/config # Make sure your local config directory exists
+      - /var/run/docker.sock:/var/run/docker.sock # (optional) For docker integrations
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.entrypoints=http"
+      - "traefik.http.routers.homepage.rule=Host(`homepage.$DOMAIN`)"
+      - "traefik.http.middlewares.homepage-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.homepage.middlewares=homepage-https-redirect"
+      - "traefik.http.routers.homepage-secure.entrypoints=https"
+      - "traefik.http.routers.homepage-secure.rule=Host(`homepage.$DOMAIN`)"
+      - "traefik.http.routers.homepage-secure.tls=true"
+      - "traefik.http.routers.homepage-secure.service=homepage"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+    security_opt:
+      - no-new-privileges:true
+
+###############################################################################################################
+###############################################################################################################
+# IT-TOOLS
+# See video: https://youtu.be/CbIASgzUIUU
+###############################################################################################################
+###############################################################################################################
+
+  it-tools:
+      image: 'corentinth/it-tools:latest'
+      #ports:
+      #    - '8080:80'
+      restart: unless-stopped
+      container_name: it-tools
+      networks:
+        - proxy
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.routers.it-tools.entrypoints=http"
+        - "traefik.http.routers.it-tools.rule=Host(`it-tools.$DOMAIN`)"
+        - "traefik.http.middlewares.it-tools-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.it-tools.middlewares=it-tools-https-redirect"
+        - "traefik.http.routers.it-tools-secure.entrypoints=https"
+        - "traefik.http.routers.it-tools-secure.rule=Host(`it-tools.$DOMAIN`)"
+        - "traefik.http.routers.it-tools-secure.tls=true"
+        - "traefik.http.routers.it-tools-secure.tls.certresolver=cloudflare"
+        - "traefik.http.routers.it-tools-secure.service=it-tools"
+        - "traefik.http.services.it-tools.loadbalancer.server.port=80"
+
+###############################################################################################################
+###############################################################################################################
+# JELLYFIN
+# See video: https://youtu.be/VHXefJ7Ne6I
+###############################################################################################################
+###############################################################################################################
+
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    user: 1000:1000
+    #group_add:
+    #  - '109'  # This needs to be the group id of running `stat -c '%g' /dev/dri/renderD128` on the docker host
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ${WORKING_DIR}/jellyfin/config:/config
+      - ${WORKING_DIR}/jellyfin/cache:/cache
+    # You will need to map your NAS first (mount), then uncomment and reference below
+    #  - /home/ubuntu/YOUR_NAS/Films:/Films:ro
+    #  - /home/ubuntu/YOUR_NAS/TVShows:/TVShows:ro
+    #  - /home/ubuntu/YOUR_NAS/Audiobooks:/Audiobooks:ro
+    #  - /home/ubuntu/YOUR_NAS/Music:/Music:ro
+    #ports: You will need to uncomment if you aren't running through a proxy
+    #  - 8096:8096
+    #  - 8920:8920 #optional
+    #  - 7359:7359/udp #optional
+    #  - 1900:1900/udp #optional
+    #devices: uncomment these and amend if you require GPU accelerated transcoding - this is for Intel
+    #  - /dev/dri/renderD128:/dev/dri/renderD128
+    #  - /dev/dri/card0:/dev/dri/card0
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.entrypoints=http"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.$DOMAIN`)"
+      - "traefik.http.middlewares.jellyfin-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.jellyfin.middlewares=jellyfin-https-redirect"
+      - "traefik.http.routers.jellyfin-secure.entrypoints=https"
+      - "traefik.http.routers.jellyfin-secure.rule=Host(`jellyfin.$DOMAIN`)"
+      - "traefik.http.routers.jellyfin-secure.tls=true"
+      - "traefik.http.routers.jellyfin-secure.service=jellyfin"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+      - "traefik.docker.network=proxy"
+    networks:
+      proxy:
+    security_opt:
+      - no-new-privileges:true
+
+###############################################################################################################
+###############################################################################################################
+# MIROTALK
+# See video: https://youtu.be/LuLzStcvia0
+###############################################################################################################
+###############################################################################################################
+
+  mirotalk:
+      image: mirotalk/p2p:latest
+      container_name: mirotalk
+      hostname: mirotalk
+      volumes:
+          - .env:/src/.env:ro
+          # These volumes are not mandatory, uncomment if you want to use it
+          # - ./app/:/src/app/:ro # useful for changing the UI JS
+          # - ./public/:/src/public/:ro
+      restart: unless-stopped
+      networks:
+        proxy:
+      # Uncomment ports and comment labels if you're not using a reverse proxy
+      #ports:
+      #    - '${PORT}:${PORT}'
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.routers.mirotalk.entrypoints=http"
+        - "traefik.http.routers.mirotalk.rule=Host(`mirotalk.$DOMAIN`)"
+        - "traefik.http.middlewares.mirotalk-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.mirotalk.middlewares=mirotalk-https-redirect"
+        - "traefik.http.routers.mirotalk-secure.entrypoints=https"
+        - "traefik.http.routers.mirotalk-secure.rule=Host(`mirotalk.$DOMAIN`)"
+        - "traefik.http.routers.mirotalk-secure.tls=true"
+        - "traefik.http.routers.mirotalk-secure.tls.certresolver=cloudflare"
+        - "traefik.http.routers.mirotalk-secure.service=mirotalk"
+        - "traefik.http.services.mirotalk.loadbalancer.server.port=3000" # make sure the loadbalancer is the last line!!!
+
+###############################################################################################################
+###############################################################################################################
+# RESTIC
+# See video: https://youtu.be/WBBTC5WfGis
+###############################################################################################################
+###############################################################################################################
+
+  backup:
+    image: mazzolino/restic
+    container_name: restic
+    hostname: your_host_name
+    environment:
+      RUN_ON_STARTUP: "true" #change as you wish
+      BACKUP_CRON: "0 */12 * * *" #this is twice daily, i.e., every 12 hours
+      RESTIC_REPOSITORY: /restic
+      RESTIC_PASSWORD: MY_SUPER_LONG_PASSWORD
+      RESTIC_BACKUP_SOURCES: /mnt/volumes
+      RESTIC_COMPRESSION: auto 
+      RESTIC_BACKUP_ARGS: >-
+        --tag restic-proxmox #add tags, whatever you need to mark backups
+        --verbose
+      RESTIC_FORGET_ARGS: >- #change as required
+        --keep-last 10
+        --keep-daily 7
+        --keep-weekly 5
+        --keep-monthly 12
+      TZ: Europe/London
+    volumes:
+    # this will store locally
+      - ${WORKING_DIR}/restic:/restic
+      - ${WORKING_DIR}/restic-restore:/tmp-for-restore
+    # recommend to store on a NAS or other device - uncomment below
+    #  - /home/ubuntu/truenas/Restic-Proxmox-Backup:/restic #change the left hand side to where you want to store the backups. As you can see I'm storing it on my NAS that is mounted to the host /home/truenas
+    #  - /home/ubuntu/truenas/Restic-Proxmox-Backup/tmp-for-restore:/tmp-for-restore #USE THIS FOLDER FOR RESTORE - CAN VIEW EACH CONTAINER
+    # The data of your existing containers (i.e., all of the containers in here /docker)
+      - ${WORKING_DIR}:/mnt/volumes:ro
+    security_opt:
+      - no-new-privileges:true
+
+  prune:
+    image: mazzolino/restic
+    container_name: restic-prune
+    hostname: your_host_name
+    environment:
+      RUN_ON_STARTUP: "true"
+      PRUNE_CRON: "0 0 4 * * *"
+      RESTIC_REPOSITORY: /restic
+      RESTIC_PASSWORD: USE_SAME_PASSWORD_AS_ABOVE
+      TZ: Europe/London
+    security_opt:
+      - no-new-privileges:true
+
+  check:
+    image: mazzolino/restic
+    container_name: restic-check
+    hostname: your_host_name
+    environment:
+      RUN_ON_STARTUP: "false"
+      CHECK_CRON: "0 15 5 * * *"
+      RESTIC_CHECK_ARGS: >-
+        --read-data-subset=10%
+      RESTIC_REPOSITORY: /restic
+      RESTIC_PASSWORD: USE_SAME_PASSWORD_AS_ABOVE
+      TZ: Europe/London
+    security_opt:
+      - no-new-privileges:true
+
+###############################################################################################################
+###############################################################################################################
+# UPTIME_KUMA
+# See video: https://youtu.be/0FId6vahLAI
+###############################################################################################################
+###############################################################################################################
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    volumes:
+      - ${WORKING_DIR}/uptime-kuma:/app/data
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime-kuma.entrypoints=http"
+      - "traefik.http.routers.uptime-kuma.rule=Host(`uptime-kuma.$DOMAIN`)"
+      - "traefik.http.middlewares.uptime-kuma-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.uptime-kuma.middlewares=uptime-kuma-https-redirect"
+      - "traefik.http.routers.uptime-kuma-secure.entrypoints=https"
+      - "traefik.http.routers.uptime-kuma-secure.rule=Host(`uptime-kuma.$DOMAIN`)"
+      - "traefik.http.routers.uptime-kuma-secure.tls=true"
+      - "traefik.http.routers.uptime-kuma-secure.service=uptime-kuma"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+      - "traefik.docker.network=proxy"
+
+###############################################################################################################
+###############################################################################################################
+# VAULTWARDEN
+# See video: https://youtu.be/DnAOiYhdiII
+###############################################################################################################
+###############################################################################################################
+
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    volumes:
+      - '${WORKING_DIR}/vaultwarden/:/data/'
+    restart: unless-stopped
+    networks:
+      proxy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vaultwarden.entrypoints=http"
+      - "traefik.http.routers.vaultwarden.rule=Host(`vaultwarden.$DOMAIN`)"
+      - "traefik.http.middlewares.vaultwarden-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.vaultwarden.middlewares=vaultwarden-https-redirect"
+      - "traefik.http.routers.vaultwarden-secure.entrypoints=https"
+      - "traefik.http.routers.vaultwarden-secure.rule=Host(`vaultwarden.$DOMAIN`)"
+      - "traefik.http.routers.vaultwarden-secure.tls=true"
+      - "traefik.http.routers.vaultwarden-secure.service=vaultwarden"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+    security_opt:
+      - no-new-privileges:true
+
+###############################################################################################################
+###############################################################################################################
+# WIREGUARD
+# See video: https://youtu.be/C59dOinNurk
+###############################################################################################################
+###############################################################################################################
+
+  wireguard-easy:
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: wg-easy
+    volumes:
+      - ${WORKING_DIR}/wireguard-easy/etc_wireguard:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+    #  - "51821:51821/tcp"
+    restart: unless-stopped
+    networks:
+      - proxy
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      # - NET_RAW # ?? Uncomment if using Podman
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.wireguard.entrypoints=http"
+      - "traefik.http.routers.wireguard.rule=Host(`wireguard.$DOMAIN`)"
+      - "traefik.http.middlewares.wireguard-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.wireguard.middlewares=wireguard-https-redirect"
+      - "traefik.http.routers.wireguard-secure.entrypoints=https"
+      - "traefik.http.routers.wireguard-secure.rule=Host(`wireguard.$DOMAIN`)"
+      - "traefik.http.routers.wireguard-secure.tls=true"
+      - "traefik.http.routers.wireguard-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.wireguard-secure.service=wireguard"
+      - "traefik.http.services.wireguard.loadbalancer.server.port=51821"
+
+
+volumes:
+  portainer_data:
+  database:
+    driver: local
+  redis:
+    driver: local
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.8.250.0/24
+  pihole_internal:
+    name: pihole_internal
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.70.9.0/29

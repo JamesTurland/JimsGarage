@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pihole
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: pihole
+    app.kubernetes.io/name: pihole
+  name: pihole
+  namespace: pihole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+        app.kubernetes.io/name: pihole
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+      - image: visibilityspots/cloudflared
+        imagePullPolicy: IfNotPresent
+        name: cloudflared
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: TCP
+        - containerPort: 67
+          name: dns-udp
+          protocol: UDP
+        env:
+        - name: TUNNEL_METRICS
+          value: 127.0.0.1:3000
+      - env:
+        - name: TZ
+          value: "Europe/London"
+        - name: WEBPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: web-pass
+              key: WEBPASSWORD
+        - name: FTLCONF_LOCAL_IPV4
+          value: 192.168.200.11
+        - name: PIHOLE_DNS_
+          value: 127.0.0.1#5054 
+        image: pihole/pihole:latest
+        imagePullPolicy: Always
+        name: pihole
+        ports:
+        - containerPort: 80
+          name: pihole-http
+          protocol: TCP
+        - containerPort: 53
+          name: dns
+          protocol: TCP
+        - containerPort: 53
+          name: dns-udp
+          protocol: UDP
+        - containerPort: 443
+          name: pihole-ssl
+          protocol: TCP
+        - containerPort: 67
+          name: client-udp
+          protocol: UDP
+        volumeMounts:
+        - mountPath: /etc/pihole
+          name: pihole
+        securityContext:
+          capabilities:        
+            add:
+              - NET_ADMIN  
+      restartPolicy: Always
+      volumes:
+        - name: pihole
+          persistentVolumeClaim:
+            claimName: pihole
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: pihole
+  name: pihole
+  namespace: pihole
+spec:
+  ports:
+  - name: dns-udp
+    port: 53
+    protocol: UDP
+    targetPort: 53
+  - name: client-udp
+    port: 67
+    protocol: UDP
+    targetPort: 67
+  - name: dns
+    port: 53
+    protocol: TCP
+    targetPort: 53
+  selector:
+    app: pihole
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.1.222 # this is your DNS IP, NOT THE GUI!
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: pihole
+  name: pihole-web
+  namespace: pihole
+spec:
+  ports:
+  - name: pihole-http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  - name: pihole-https
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: pihole
+  type: ClusterIP # Gui is only available via proxy

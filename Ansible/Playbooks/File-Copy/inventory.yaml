@@ -1,0 +1,8 @@
+---
+docker:
+  hosts:
+    docker01:
+      ansible_host: 192.168.200.50
+      ansible_user: 'ubuntu'
+      ansible_become: true
+      ansible_become_method: sudo

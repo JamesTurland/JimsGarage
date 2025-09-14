@@ -1,0 +1,27 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`www.vaultwarden.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: vaultwarden
+          port: 80
+    - match: Host(`vaultwarden.yourdomain.co.uk`)
+      kind: Rule
+      services:
+        - name: vaultwarden
+          port: 80
+      middlewares:
+        - name: default-headers
+        - name: local-ipwhitelist
+  tls:
+    secretName: yourdomain-tls

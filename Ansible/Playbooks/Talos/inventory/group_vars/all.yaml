@@ -1,0 +1,27 @@
+os: "linux"
+arch: "amd64"
+
+talos_version: v1.7.0
+talosctl_version: v1.7.5
+control_plane_ip: 192.168.200.61
+
+control_plane_2: 192.168.200.62
+control_plane_3: 192.168.200.63
+
+worker_1: 192.168.200.64
+worker_2: 192.168.200.65
+
+config_directory: "/home/{{ ansible_user }}/.talos"
+config_file: "/home/{{ ansible_user }}/.talos/talosconfig"
+
+kube_vip_version: "v0.8.0"
+vip_interface: eth0
+vip: 192.168.3.50
+
+metallb_version: v0.13.12
+lb_range: 192.168.3.80-192.168.3.90
+lb_pool_name: first-pool
+
+ansible_user: ubuntu
+ansible_become: true
+ansible_become_method: sudo

@@ -1,0 +1,94 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: homeassistant
+    app.kubernetes.io/instance: homeassistant
+  name: homeassistant
+  namespace: homeassistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homeassistant
+  template:
+    metadata:
+      labels:
+        app: homeassistant
+        app.kubernetes.io/name: homeassistant
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+      - image: homeassistant/home-assistant:latest
+        imagePullPolicy: Always
+        name: homeassistant
+        ports:
+        - containerPort: 8123
+          name: web
+          protocol: TCP
+        env:
+        - name: TZ
+          value: Europe/London
+        volumeMounts:
+        - mountPath: /config
+          name: homeassistant
+          subPath: config
+      - image: docker.io/postgres:12-alpine
+        imagePullPolicy: IfNotPresent
+        name: homeassistant-db
+        ports:
+        - containerPort: 5432
+          name: db
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: secrets
+              key: POSTGRES_DB
+        - name: POSTGRES_INITDB_ARGS
+          value: --encoding=UTF-8
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: homeassistant
+          subPath: schemas
+      volumes:
+        - name: homeassistant
+          persistentVolumeClaim:
+            claimName: homeassistant
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: homeassistant
+  name: homeassistant
+  namespace: homeassistant 
+spec:
+  ports:
+  - name: web-tcp
+    port: 80
+    protocol: TCP
+    targetPort: 8123
+  - name: db
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: homeassistant
+  externalTrafficPolicy: Local
+  loadBalancerIP: 192.168.200.17
+  type: LoadBalancer

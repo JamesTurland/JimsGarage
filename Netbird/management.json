@@ -1,0 +1,101 @@
+{
+    "Stuns": [
+        {
+            "Proto": "udp",
+            "URI": "stun:netbird.jimsgarage.co.uk:3478",
+            "Username": "",
+            "Password": ""
+        }
+    ],
+    "TURNConfig": {
+        "TimeBasedCredentials": false,
+        "CredentialsTTL": "12h0m0s",
+        "Secret": "secret",
+        "Turns": [
+            {
+                "Proto": "udp",
+                "URI": "turn:netbird.jimsgarage.co.uk:3478",
+                "Username": "self",
+                "Password": "Y+cIijpf7Up2kX/mv/DUo3hYK7ZsOL2oRwqkjbXU9FQ"
+            }
+        ]
+    },
+    "Signal": {
+        "Proto": "https",
+        "URI": "netbird.jimsgarage.co.uk:443",
+        "Username": "",
+        "Password": ""
+    },
+    "Datadir": "/var/lib/netbird/",
+    "DataStoreEncryptionKey": "YnZ6wQYmLn/4nqLBECLzrCS0h6H67ioxnj0T+hzwOW0=",
+    "HttpConfig": {
+        "LetsEncryptDomain": "",
+        "CertFile": "",
+        "CertKey": "",
+        "AuthAudience": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+        "AuthIssuer": "https://authentik.jimsgarage.co.uk/application/o/netbird/",
+        "AuthUserIDClaim": "",
+        "AuthKeysLocation": "https://authentik.jimsgarage.co.uk/application/o/netbird/jwks/",
+        "OIDCConfigEndpoint": "https://authentik.jimsgarage.co.uk/application/o/netbird/.well-known/openid-configuration",
+        "IdpSignKeyRefreshEnabled": false
+    },
+    "IdpManagerConfig": {
+        "ManagerType": "authentik",
+        "ClientConfig": {
+            "Issuer": "https://authentik.jimsgarage.co.uk/application/o/netbird",
+            "TokenEndpoint": "https://authentik.jimsgarage.co.uk/application/o/token/",
+            "ClientID": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+            "ClientSecret": "",
+            "GrantType": "client_credentials"
+        },
+        "ExtraConfig": {
+            "Password": "3oWe0Ks8CBdyY7jlxp3MFZj1fseRSXyQoR3opt2iA5PTpVEHqqHkMJcfQLzC",
+            "Username": "Netbird"
+        },
+        "Auth0ClientCredentials": null,
+        "AzureClientCredentials": null,
+        "KeycloakClientCredentials": null,
+        "ZitadelClientCredentials": null
+    },
+    "DeviceAuthorizationFlow": {
+        "Provider": "hosted",
+        "ProviderConfig": {
+            "ClientID": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+            "ClientSecret": "",
+            "Domain": "authentik.jimsgarage.co.uk",
+            "Audience": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+            "TokenEndpoint": "https://authentik.jimsgarage.co.uk/application/o/token/",
+            "DeviceAuthEndpoint": "https://authentik.jimsgarage.co.uk/application/o/device/",
+            "AuthorizationEndpoint": "",
+            "Scope": "openid",
+            "UseIDToken": false,
+            "RedirectURLs": null
+        }
+    },
+    "PKCEAuthorizationFlow": {
+        "ProviderConfig": {
+            "ClientID": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+            "ClientSecret": "",
+            "Domain": "",
+            "Audience": "q5oAgpeZoIRa9NV7qIm6PeHKUhVTXu2dIFWmA4nU",
+            "TokenEndpoint": "https://authentik.jimsgarage.co.uk/application/o/token/",
+            "DeviceAuthEndpoint": "",
+            "AuthorizationEndpoint": "https://authentik.jimsgarage.co.uk/application/o/authorize/",
+            "Scope": "openid profile email offline_access api",
+            "UseIDToken": false,
+            "RedirectURLs": [
+                "http://localhost:53000"
+            ]
+        }
+    },
+    "StoreConfig": {
+        "Engine": "sqlite"
+    },
+    "ReverseProxy": {
+        "TrustedHTTPProxies": [],
+        "TrustedHTTPProxiesCount": 0,
+        "TrustedPeers": [
+            "0.0.0.0/0"
+        ]
+    }
+}

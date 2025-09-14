@@ -1,0 +1,53 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: vaultwarden
+    app.kubernetes.io/instance: vaultwarden
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+        app.kubernetes.io/name: vaultwarden
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+      - image: vaultwarden/server:latest
+        imagePullPolicy: Always
+        name: vaultwarden
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /data/
+          name: vaultwarden
+      volumes:
+        - name: vaultwarden
+          persistentVolumeClaim:
+            claimName: vaultwarden
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: vaultwarden
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  ports:
+  - name: web-tcp
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: vaultwarden

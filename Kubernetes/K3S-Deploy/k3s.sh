@@ -60,6 +60,9 @@ lbrange=192.168.3.60-192.168.3.80
 #ssh certificate name variable
 certName=id_rsa
 
+#ssh config file
+config_file=~/.ssh/config
+
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
@@ -92,8 +95,31 @@ else
     echo -e " \033[32;5mKubectl already installed\033[0m"
 fi
 
-# Create SSH Config file to ignore checking (don't use in production!)
-sed -i '1s/^/StrictHostKeyChecking no\n/' ~/.ssh/config
+# Check for SSH config file, create if needed, add/change Strict Host Key Checking (don't use in production!)
+
+if [ ! -f "$config_file" ]; then
+  # Create the file and add the line
+  echo "StrictHostKeyChecking no" > "$config_file"
+  # Set permissions to read and write only for the owner
+  chmod 600 "$config_file"
+  echo "File created and line added."
+else
+  # Check if the line exists
+  if grep -q "^StrictHostKeyChecking" "$config_file"; then
+    # Check if the value is not "no"
+    if ! grep -q "^StrictHostKeyChecking no" "$config_file"; then
+      # Replace the existing line
+      sed -i 's/^StrictHostKeyChecking.*/StrictHostKeyChecking no/' "$config_file"
+      echo "Line updated."
+    else
+      echo "Line already set to 'no'."
+    fi
+  else
+    # Add the line to the end of the file
+    echo "StrictHostKeyChecking no" >> "$config_file"
+    echo "Line added."
+  fi
+fi
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
@@ -103,7 +129,7 @@ done
 # Install policycoreutils for each node
 for newnode in "${all[@]}"; do
   ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
-  NEEDRESTART_MODE=a apt install policycoreutils -y
+  NEEDRESTART_MODE=a apt-get install policycoreutils -y
   exit
 EOF
   echo -e " \033[32;5mPolicyCoreUtils installed!\033[0m"

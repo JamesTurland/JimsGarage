@@ -1,0 +1,227 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    # container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    env_file:
+      - .env # should default to .env
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+    volumes:
+      - /home/ubuntu/docker/arr-stack/gluetun:/gluetun
+    environment:
+      # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=wireguard
+      # OpenVPN:
+      # - OPENVPN_USER=
+      # - OPENVPN_PASSWORD=
+      # Wireguard:
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_TOKEN}
+      - WIREGUARD_ADDRESSES=10.5.0.2/16
+      - SERVER_COUNTRIES=UNITED KINGDOM
+      # Timezone for accurate log times
+      - TZ=Europe/London
+      # Server list updater
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      - UPDATER_PERIOD=24h
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.qbittorrent.entrypoints=http"
+      - "traefik.http.routers.qbittorrent.rule=Host(`qbittorrent.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.qbittorrent-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.qbittorrent.middlewares=qbittorrent-https-redirect"
+      - "traefik.http.routers.qbittorrent-secure.entrypoints=https"
+      - "traefik.http.routers.qbittorrent-secure.rule=Host(`qbittorrent.jimsgarage.co.uk`)"
+      - "traefik.http.routers.qbittorrent-secure.tls=true"
+      - "traefik.http.routers.qbittorrent-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.qbittorrent-secure.service=qbittorrent"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=8085"
+
+      - "traefik.http.routers.jackett.entrypoints=http"
+      - "traefik.http.routers.jackett.rule=Host(`jackett.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.jackett-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.jackett.middlewares=jackett-https-redirect"
+      - "traefik.http.routers.jackett-secure.entrypoints=https"
+      - "traefik.http.routers.jackett-secure.rule=Host(`jackett.jimsgarage.co.uk`)"
+      - "traefik.http.routers.jackett-secure.tls=true"
+      - "traefik.http.routers.jackett-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.jackett-secure.service=jackett"
+      - "traefik.http.services.jackett.loadbalancer.server.port=9117"
+
+      - "traefik.http.routers.sonarr.entrypoints=http"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.sonarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.sonarr.middlewares=sonarr-https-redirect"
+      - "traefik.http.routers.sonarr-secure.entrypoints=https"
+      - "traefik.http.routers.sonarr-secure.rule=Host(`sonarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.sonarr-secure.tls=true"
+      - "traefik.http.routers.sonarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.sonarr-secure.service=sonarr"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+
+      - "traefik.http.routers.prowlarr.entrypoints=http"
+      - "traefik.http.routers.prowlarr.rule=Host(`prowlarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.prowlarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.prowlarr.middlewares=prowlarr-https-redirect"
+      - "traefik.http.routers.prowlarr-secure.entrypoints=https"
+      - "traefik.http.routers.prowlarr-secure.rule=Host(`prowlarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.prowlarr-secure.tls=true"
+      - "traefik.http.routers.prowlarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.prowlarr-secure.service=prowlarr"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=9696"
+
+      - "traefik.http.routers.radarr.entrypoints=http"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.radarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.radarr.middlewares=radarr-https-redirect"
+      - "traefik.http.routers.radarr-secure.entrypoints=https"
+      - "traefik.http.routers.radarr-secure.rule=Host(`radarr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.radarr-secure.tls=true"
+      - "traefik.http.routers.radarr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.radarr-secure.service=radarr"
+      - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+
+      - "traefik.http.routers.homepage-arr.entrypoints=http"
+      - "traefik.http.routers.homepage-arr.rule=Host(`homepage-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.homepage-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.homepage-arr.middlewares=homepage-arr-https-redirect"
+      - "traefik.http.routers.homepage-arr-secure.entrypoints=https"
+      - "traefik.http.routers.homepage-arr-secure.rule=Host(`homepage-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.homepage-arr-secure.tls=true"
+      - "traefik.http.routers.homepage-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.homepage-arr-secure.service=homepage-arr"
+      - "traefik.http.services.homepage-arr.loadbalancer.server.port=3000"
+
+      - "traefik.http.routers.jellyfin-arr.entrypoints=http"
+      - "traefik.http.routers.jellyfin-arr.rule=Host(`jellyfin-arr.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.jellyfin-arr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.jellyfin-arr.middlewares=jellyfin-arr-https-redirect"
+      - "traefik.http.routers.jellyfin-arr-secure.entrypoints=https"
+      - "traefik.http.routers.jellyfin-arr-secure.rule=Host(`jellyfin-arr.jimsgarage.co.uk`)"
+      - "traefik.http.routers.jellyfin-arr-secure.tls=true"
+      - "traefik.http.routers.jellyfin-arr-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.jellyfin-arr-secure.service=jellyfin-arr"
+      - "traefik.http.services.jellyfin-arr.loadbalancer.server.port=8096"
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - WEBUI_PORT=8085
+    volumes:
+      - /home/ubuntu/docker/arr-stack/qbittorrent:/config
+      - /home/ubuntu/docker/arr-stack/qbittorrent/downloads:/downloads
+    depends_on:
+      - gluetun
+    restart: always
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - AUTO_UPDATE=true #optional
+      - RUN_OPTS= #optional
+    volumes:
+      - /home/ubuntu/docker/arr-stack/jackett/data:/config
+      - /home/ubuntu/docker/arr-stack/jackett/blackhole:/downloads
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/sonarr/data:/config
+      - /home/ubuntu/docker/arr-stack/sonarr/tvseries:/tv #optional
+      - /home/ubuntu/docker/arr-stack/sonarr/downloadclient-downloads:/downloads #optional
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/prowlarr/data:/config
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/ubuntu/docker/arr-stack/radarr/data:/config
+      # - /path/to/movies:/movies #optional
+      - /home/ubuntu/docker/arr-stack/qbittorrent/downloads:/downloads #optional
+    restart: unless-stopped
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    network_mode: "service:gluetun"
+    environment:
+      PUID: 1000 # optional, your user id
+      PGID: 1000 # optional, your group id
+    volumes:
+      - /home/ubuntu/docker/arr-stack/homepage:/app/config # Make sure your local config directory exists
+      - /var/run/docker.sock:/var/run/docker.sock:ro # optional, for docker integrations
+    restart: unless-stopped
+
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    network_mode: "service:gluetun"
+    #group_add:
+    #  - '109'  # This needs to be the group id of running `stat -c '%g' /dev/dri/renderD128` on the docker host
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - /home/ubuntu/docker/arr-stack/jellyfin/config:/config
+      - /home/ubuntu/docker/arr-stack/jellyfin/cache:/cache
+      # - /home/ubuntu/YOUR_NAS/Films:/Films:ro
+      # - /home/ubuntu/YOUR_NAS/TVShows:/TVShows:ro
+      # - /home/ubuntu/YOUR_NAS/Audiobooks:/Audiobooks:ro
+      # - /home/ubuntu/YOUR_NAS/Music:/Music:ro
+    #ports: You will need to uncomment if you aren't running through a proxy
+    #  - 8096:8096
+    #  - 8920:8920 #optional
+    #  - 7359:7359/udp #optional
+    #  - 1900:1900/udp #optional
+    #devices: uncomment these and amend if you require GPU accelerated transcoding
+    #  - /dev/dri/renderD128:/dev/dri/renderD128
+    #  - /dev/dri/card0:/dev/dri/card0
+    restart: unless-stopped
+
+networks:
+  proxy:
+    external: true

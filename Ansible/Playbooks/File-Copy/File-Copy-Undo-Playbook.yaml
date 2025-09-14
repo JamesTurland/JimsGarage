@@ -1,0 +1,24 @@
+---
+- name: Undo Docker Compose Deployment
+  hosts: all
+  become: true
+  tasks:
+    - name: Stop Docker Container
+      community.docker.docker_compose:
+        project_src: /home/ubuntu/ansible-docker/docker-compose
+        state: absent
+
+    - name: Remove Docker Compose file
+      ansible.builtin.file:
+        path: /home/ubuntu/ansible-docker/docker-compose/docker-compose.yml
+        state: absent
+
+    - name: Remove Docker Compose directory
+      ansible.builtin.file:
+        path: /home/ubuntu/ansible-docker
+        state: absent
+
+    - name: Remove Website directory
+      ansible.builtin.file:
+        path: /home/ubuntu/docker/nginx/web
+        state: absent

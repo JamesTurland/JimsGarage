@@ -1,0 +1,37 @@
+services:
+  tinyauth:
+    image: ghcr.io/steveiliop56/tinyauth:v3
+    container_name: tinyauth
+    restart: unless-stopped
+    environment:
+      # generate with openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32
+      - SECRET=${SECRET}
+      - APP_URL=https://tinyauth.jimsgarage.co.uk
+      # generate with "echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g" - substitute the user with what you want, or use a file
+      # - USERS=${USERS}
+      - USERS_FILE=users_file # add a file with multiple users in the above format if necessary
+      - LOG_LEVEL=0
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - OAUTH_WHITELIST=${OAUTH_WHITELIST}
+    volumes:
+      - ./users:/tinyauth/users_file
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.tinyauth.entrypoints=http"
+      - "traefik.http.routers.tinyauth.rule=Host(`tinyauth.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.tinyauth-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.tinyauth.middlewares=tinyauth-https-redirect"
+      - "traefik.http.routers.tinyauth-secure.entrypoints=https"
+      - "traefik.http.routers.tinyauth-secure.rule=Host(`tinyauth.jimsgarage.co.uk`)"
+      - "traefik.http.routers.tinyauth-secure.tls=true"
+      - "traefik.http.routers.tinyauth-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.tinyauth-secure.service=tinyauth"
+      - "traefik.http.services.tinyauth.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.tinyauth.forwardauth.address=http://tinyauth:3000/api/auth/traefik"
+networks:
+  proxy:
+    external: true

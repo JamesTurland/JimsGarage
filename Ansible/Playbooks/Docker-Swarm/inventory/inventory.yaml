@@ -1,0 +1,16 @@
+all:
+  children:
+    managers:
+      hosts:
+        manager1:
+          ansible_host: 192.168.200.71
+        manager2:
+          ansible_host: 192.168.200.72
+        manager3:
+          ansible_host: 192.168.200.73
+    workers:
+      hosts:
+        worker1:
+          ansible_host: 192.168.200.74
+        worker2:
+          ansible_host: 192.168.200.75

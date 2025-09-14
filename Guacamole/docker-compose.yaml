@@ -1,0 +1,100 @@
+####################################################################################
+# docker-compose file for Apache Guacamole
+# created by PCFreak 2017-06-28
+#
+# https://github.com/boschkundendienst/guacamole-docker-compose
+#
+# Apache Guacamole is a clientless remote desktop gateway. It supports standard
+# protocols like VNC, RDP, and SSH. We call it clientless because no plugins or
+# client software are required. Thanks to HTML5, once Guacamole is installed on
+# a server, all you need to access your desktops is a web browser.
+####################################################################################
+#
+#
+# The initial login to the guacamole webinterface is:
+#
+#     Username: guacadmin
+#     Password: guacadmin
+#
+#####################################################################################
+
+# services
+services:
+  # guacd
+  guacd:
+    container_name: guacd
+    image: guacamole/guacd:latest
+    networks:
+      - guacnetwork
+    restart: always
+    volumes:
+    - ./drive:/drive:rw
+    - ./record:/record:rw
+  # mysql
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: guacamole_db
+      MYSQL_USER: guac_user
+      MYSQL_PASSWORD: guac_pass
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:z
+      - ./data:/var/lib/mysql
+    networks:
+      - guacnetwork
+
+  # guacamole
+  guacamole:
+    container_name: guacamole
+    image: guacamole/guacamole:latest
+    env_file:
+      - .env # store secrets e.g., password
+    group_add:
+      - "1000"
+    depends_on:
+    - guacd
+    - mysql
+    environment:
+      - GUACD_HOSTNAME=guacd
+      - MYSQL_HOSTNAME=mysql
+      - MYSQL_DATABASE=guacamole_db
+      - MYSQL_USER=guac_user
+      - MYSQL_PASSWORD=guac_pass
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - RECORDING_SEARCH_PATH=/record
+      - WEBAPP_CONTEXT=ROOT # removes the need to use /guacamole in the URL
+    networks:
+      - proxy
+      - guacnetwork
+    volumes:
+      - ./record:/record:rw
+    ports:
+## enable next line if not using nginx
+      - 8095:8080/tcp # Guacamole is on :8080/guacamole, not /.
+## enable next line when using nginx
+    # - 8080/tcp
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.guacamole.entrypoints=http"
+      - "traefik.http.routers.guacamole.rule=Host(`guacamole.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.guacamole-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.guacamole.middlewares=guacamole-https-redirect"
+      - "traefik.http.routers.guacamole-secure.entrypoints=https"
+      - "traefik.http.routers.guacamole-secure.rule=Host(`guacamole.jimsgarage.co.uk`)"
+      - "traefik.http.routers.guacamole-secure.tls=true"
+      - "traefik.http.routers.guacamole-secure.service=guacamole"
+      - "traefik.http.services.guacamole.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+    restart: always
+
+
+# networks
+# create a network 'guacnetwork' in mode 'bridged'
+networks:
+  guacnetwork:
+    driver: bridge
+  proxy:
+    external: true

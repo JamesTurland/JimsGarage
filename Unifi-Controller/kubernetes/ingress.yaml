@@ -1,0 +1,39 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: default-headers
+  namespace: unifi-controller
+spec:
+  headers:
+    browserXssFilter: true
+    contentTypeNosniff: true
+    forceSTSHeader: true
+    stsIncludeSubdomains: true
+    stsPreload: true
+    stsSeconds: 15552000
+    customFrameOptionsValue: SAMEORIGIN
+    customRequestHeaders:
+      X-Forwarded-Proto: https
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: unifi-controller
+  namespace: unifi-controller
+  annotations:
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`unifi.yourdomain.com`) # change to your domain
+      kind: Rule
+      services:
+        - name: unifi-tcp
+          port: 8443
+          scheme: https
+      middlewares:
+        - name: default-headers
+  tls:
+    secretName: ffth-tls # change to your cert name

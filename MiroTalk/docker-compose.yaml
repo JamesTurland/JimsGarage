@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+    mirotalk:
+        image: mirotalk/p2p:latest
+        container_name: mirotalk
+        hostname: mirotalk
+        volumes:
+            - .env:/src/.env:ro
+            # These volumes are not mandatory, uncomment if you want to use it
+            # - ./app/:/src/app/:ro # useful for changing the UI JS
+            # - ./public/:/src/public/:ro
+        restart: unless-stopped
+        networks:
+          proxy:
+        # Uncomment ports and comment labels if you're not using a reverse proxy
+        #ports:
+        #    - '${PORT}:${PORT}'
+        labels:
+          - "traefik.enable=true"
+          - "traefik.docker.network=proxy"
+          - "traefik.http.routers.mirotalk.entrypoints=http"
+          - "traefik.http.routers.mirotalk.rule=Host(`mirotalk.yourdomain.com`)"
+          - "traefik.http.middlewares.mirotalk-https-redirect.redirectscheme.scheme=https"
+          - "traefik.http.routers.mirotalk.middlewares=mirotalk-https-redirect"
+          - "traefik.http.routers.mirotalk-secure.entrypoints=https"
+          - "traefik.http.routers.mirotalk-secure.rule=Host(`mirotalk.yourdomain.com`)"
+          - "traefik.http.routers.mirotalk-secure.tls=true"
+          - "traefik.http.routers.mirotalk-secure.tls.certresolver=cloudflare"
+          - "traefik.http.routers.mirotalk-secure.service=mirotalk"
+          - "traefik.http.services.mirotalk.loadbalancer.server.port=3000" # make sure the loadbalancer is the last line!!!
+
+networks:
+  proxy:
+    external: true

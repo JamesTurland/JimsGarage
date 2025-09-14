@@ -1,0 +1,91 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: wg-easy
+    app.kubernetes.io/instance: wg-easy
+    app.kubernetes.io/name: wg-easy
+  name: wg-easy
+  namespace: wg-easy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wg-easy
+  template:
+    metadata:
+      labels:
+        app: wg-easy
+        app.kubernetes.io/name: wg-easy
+    spec:
+      nodeSelector:
+        worker: "true"
+     # securityContext:
+     #   sysctls:
+     #   - name: net.ipv4.ip_forward
+     #     value: "1"
+     #   - name: net.ipv4.conf.all.src_valid_mark
+     #     value: "1"
+      containers:
+        - env:
+            - name: WG_HOST
+              value: "wg.yourdomain.co.uk"
+            - name: PASSWORD
+              value: "some-password-or-use-sealed-secrets"
+            - name: WG_DEFAULT_DNS
+              value: "10.43.0.10, wg-easy.svc.cluster.local"
+          image: weejewel/wg-easy
+          imagePullPolicy: Always
+          name: wg-easy
+          ports:
+            - containerPort: 51820
+            - containerPort: 51821
+          resources: {}
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+          volumeMounts:
+            - mountPath: /etc/wireguard
+              name: wg-easy
+      restartPolicy: Always
+      volumes:
+        - name: wg-easy
+          persistentVolumeClaim:
+            claimName: wg-easy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: wg-easy
+  name: wg-easy-udp
+  namespace: wg-easy
+spec:
+  ports:
+  - name: wg-easy-udp
+    port: 51820
+    protocol: UDP
+    targetPort: 51820
+  selector:
+    app: wg-easy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: wg-easy
+  name: wg-easy-web
+  namespace: wg-easy
+spec:
+  ports:
+  - name: wg-easy-web
+    port: 51821
+    protocol: TCP
+    targetPort: 51821
+  selector:
+    app: wg-easy
+  type: ClusterIP

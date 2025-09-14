@@ -1,0 +1,30 @@
+---
+- name: Ensure NFS utilities are installed
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: true
+
+- name: Reload systemd to recognize NFS changes
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Check if NFS mount point exists
+  ansible.builtin.stat:
+    path: "{{ mount_point }}"
+  register: mount_point_stat
+
+- name: Create mount point for NFS if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ mount_point }}"
+    state: directory
+    mode: '0777'
+  when: not mount_point_stat.stat.exists
+
+- name: Mount NFS share
+  ansible.posix.mount:
+    path: "{{ mount_point }}"
+    src: "{{ nfs_server }}:{{ nfs_share }}"
+    fstype: "nfs"
+    opts: "vers=4,proto=tcp,nolock"
+    state: mounted

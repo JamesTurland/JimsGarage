@@ -1,0 +1,52 @@
+---
+- name: Deploy Docker Container with Docker Compose
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure Docker is installed
+      ansible.builtin.package:
+        name: docker
+        state: present
+
+    - name: Ensure Docker service is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create a directory for Docker Compose files
+      ansible.builtin.file:
+        path: /home/ubuntu/ansible-docker/docker-compose
+        state: directory
+        mode: '0755'  # Optional file permissions
+        owner: ubuntu  # Optional ownership
+        group: ubuntu  # Optional group ownership
+
+    - name: Create a directory for Nginx website files
+      ansible.builtin.file:
+        path: /home/ubuntu/docker/nginx/web
+        state: directory
+        mode: '0755'  # Optional file permissions
+        owner: ubuntu  # Optional ownership
+        group: ubuntu  # Optional group ownership
+
+    - name: Copy docker-compose to remote host
+      ansible.builtin.copy:
+        src: /home/ubuntu/nginx/docker-compose.yaml
+        dest: /home/ubuntu/ansible-docker/docker-compose/docker-compose.yaml
+        mode: '0755'  # Optional file permissions
+        owner: ubuntu  # Optional ownership
+        group: ubuntu  # Optional group ownership
+
+    - name: Copy Nginx website folder to remote host # copies a folder - note no file extension
+      ansible.builtin.copy:
+        src: /home/ubuntu/nginx/website
+        dest: /home/ubuntu/docker/nginx/web
+        mode: '0755'  # Optional file permissions
+        owner: ubuntu  # Optional ownership
+        group: ubuntu  # Optional group ownership
+
+    - name: Start Docker Compose
+      community.docker.docker_compose:
+        project_src: /home/ubuntu/ansible-docker/docker-compose
+        state: present

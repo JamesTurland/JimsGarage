@@ -1,0 +1,128 @@
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+mqtt:
+  sensor:
+    - state_topic: "EnviroPressure"
+      name: "Enviro-Pressure"
+      unit_of_measurement: "Pa"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_pressure"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroTemperature"
+      name: "Enviro-Temperature"
+      unit_of_measurement: "°C"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_temperature"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroHumidity"
+      name: "Enviro-Humidity"
+      unit_of_measurement: "%rH"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_humidity"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroGas"
+      name: "Enviro-Gas"
+      unit_of_measurement: "Ω"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_gas"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroLux"
+      name: "Enviro-Lux"
+      unit_of_measurement: "lx"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_lux"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroMic"
+      name: "Enviro-Mic"
+      unit_of_measurement: "db"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_mic"
+      value_template: "{{ value|float(0)|round(1) }}"
+    - state_topic: "EnviroParticulates1_0"
+      name: "Enviro-Particulates-1-0"
+      unit_of_measurement: "ug/m3"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_particulates_1_0"
+    - state_topic: "EnviroParticulates2_5"
+      name: "Enviro-Particulates-2-5"
+      unit_of_measurement: "ug/m3"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_particulates_2_5"
+    - state_topic: "EnviroParticulates10"
+      name: "Enviro-Particulates-10"
+      unit_of_measurement: "ug/m3"
+      state_class: "measurement"
+      unique_id: "sensor.enviro_particulates_10"
+
+#homeassistant:
+#  auth_mfa_modules:
+#    - type: totp
+#  external_url: https://home-assistant.jimsgarage.co.uk
+#  internal_url: http://192.168.200.50:8123
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.200.50      # Add the IP address of the proxy server
+    - 192.168.200.0/24  # You may also provide the subnet mask
+    - 172.21.0.0/24 # Can be useful for Docker environments
+    - 10.0.0.0/8
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+
+#group: !include groups.yaml
+#automation: !include automations.yaml
+#script: !include scripts.yaml
+#scene: !include scenes.yaml
+
+# Example configuration.yaml entry
+#samsungtv:
+#  - host: 192.168.10.26
+
+#webostv:
+#  host: 192.168.10.20
+#  name: Garage TV
+#  turn_on_action:
+#    service: persistent_notification.create
+#    data:
+#      message: "Turn on action"
+#  customize:
+#    sources:
+#      - 'Other Box'
+#      - 'HDMI 1'
+#      - 'HDMI 2'
+#      - 'HDMI 3'
+#      - 'SHIELD'
+#      - 'Game Console'
+#      - 'Other Box'
+#      - 'SEI Robotics'
+#      - 'HDMI 4'
+#      - livetv
+#      - youtube
+#      - netflix
+#      - iplayer
+#      - 'Amazon Prime Video'
+#      - My5
+#      - ITV Hub
+
+notify:
+  - name: gmail
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jim@jimsgarage.co.uk
+    encryption: starttls
+    username: jim@jimsgarage.co.uk
+    password: mypassword # or use secret file !secret smtp_password
+    recipient:
+      - jim@jimsgarage.co.uk
+    sender_name: Home Assistant Notification
+
+recorder:
+  db_url: postgresql://homeassistant_user:xF2odDFSjd3DFsl0ZgfQsjnd55yH@homeassistant-db/homeassistant-db

@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  privatebin:
+    image: privatebin/nginx-fpm-alpine
+    restart: always
+    read_only: true
+    user: "1000:1000"  # Run the container with the UID:GID of your Docker user
+    #ports:
+    #  - "8080:8080"
+    volumes:
+      - /home/ubuntu/docker/private-bin:/srv/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.privatebin.entrypoints=http"
+      - "traefik.http.routers.privatebin.rule=Host(`privatebin.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.privatebin-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.privatebin.middlewares=privatebin-https-redirect"
+      - "traefik.http.routers.privatebin-secure.entrypoints=https"
+      - "traefik.http.routers.privatebin-secure.rule=Host(`privatebin.jimsgarage.co.uk`)"
+      - "traefik.http.routers.privatebin-secure.tls=true"
+      - "traefik.http.routers.privatebin-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.privatebin-secure.service=privatebin"
+      - "traefik.http.services.privatebin.loadbalancer.server.port=8080"
+networks:
+  proxy:
+    external: true

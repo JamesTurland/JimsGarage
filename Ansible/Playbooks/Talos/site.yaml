@@ -1,0 +1,37 @@
+# Hello, thanks for using my playbook, hopefully you can help to improve it.
+
+# Install TalosCTL on Ansible node
+- name: Install TalosCTL
+  hosts: ansible
+  gather_facts: true # enables us to gather lots of useful variables: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/setup_module.html
+  become: true
+  roles:
+    - install-talosctl
+
+# Configure Cluster Configuration
+- name: Configure Cluster
+  hosts: ansible
+  gather_facts: true
+  roles:
+    - configure-cluster
+
+# Apply Cluster Configuration
+- name: Configure Cluster
+  hosts: ansible
+  gather_facts: true
+  roles:
+    - apply-config
+
+# Configure TalosCTL
+- name: Configure TalosCTL
+  hosts: ansible
+  gather_facts: true
+  roles:
+    - configure-talosctl
+
+# Add Workers
+- name: Add Workers
+  hosts: ansible
+  gather_facts: true
+  roles:
+    - add-workers

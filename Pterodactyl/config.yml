@@ -1,0 +1,42 @@
+debug: false
+uuid: e4c68ecc-3c2a-4c30-a3e7-d631969b8bc5
+token_id: hDeKbBQIOzKNOu4T
+token: P3IgxW490amCoA3J3W7csEXV6XRxrf5kb7QgMboTn0Drtf7AKSJYdsOKOIwenUVR
+api:
+  host: 0.0.0.0
+  port: 443
+  ssl:
+    enabled: false
+    cert: /etc/letsencrypt/live/wings0.jimsgarage.co.uk/fullchain.pem
+    key: /etc/letsencrypt/live/wings0.jimsgarage.co.uk/privkey.pem
+  upload_limit: 100
+system:
+  data: /var/lib/pterodactyl/volumes
+  sftp:
+    bind_port: 2022
+allowed_mounts: []
+remote: 'https://panel.jimsgarage.co.uk'
+docker:
+  network:
+    interface: 172.50.0.1
+    dns:
+    - 192.168.200.11
+    - 1.0.0.1
+    name: wings0
+    ispn: false
+    driver: bridge
+    network_mode: wings0
+    is_internal: false
+    enable_icc: true
+    network_mtu: 1500
+    interfaces:
+      v4:
+        subnet: 172.50.0.0/16
+        gateway: 172.50.0.1
+      v6:
+        subnet: fdba:17c8:6c94::/64
+        gateway: fdba:17c8:6c94::1011
+allowed_mounts: []
+allowed_origins: []
+allow_cors_private_network: false
+ignore_panel_config_updates: false

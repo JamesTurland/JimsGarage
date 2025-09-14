@@ -3,6 +3,8 @@ services:
   gluetun:
     image: qmcgaw/gluetun
     container_name: gluetun
+    # Hostname to use for container, required in some instances for the rest of the stack to each other endpoints 
+    hostname: gluetun
     # line above must be uncommented to allow external containers to connect.
     # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
     cap_add:
@@ -17,7 +19,7 @@ services:
       - 8989:8989 # Sonarr
       - 9696:9696 # Prowlarr
     volumes:
-      - /home/ubuntu/docker/arr-stack:/gluetun
+      - /home/ubuntu/docker/arr-stack/gluetun:/gluetun
     environment:
       # See https://github.com/qdm12/gluetun-wiki/tree/main/setup#setup
       - VPN_SERVICE_PROVIDER=nordvpn

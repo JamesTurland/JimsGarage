@@ -1,0 +1,56 @@
+# Hello, thanks for using my playbook, hopefully you can help to improve it.
+# Things that need adding: (there are many more)
+# 1) Support different OS & architectures
+# 2) Support multiple CNIs
+# 3) Improve the wait logic
+# 4) Use kubernetes Ansible plugins more sensibly
+# 5) Optimise flow logic
+# 6) Clean up
+
+###############################################################
+# MAKE SURE YOU CHANGE group_vars/all.yaml VARIABLES!!!!!!!!!!!
+###############################################################
+
+# bootstraps first server and copies configs for others/agents
+- name: Prepare all nodes
+  hosts: rke2
+  gather_facts: false # fact gathering is slow and not needed for any of our tasks
+  become: true
+  roles:
+    - prepare-nodes
+    - rke2-download
+
+# Creates RKE2 bootstrap manifests folder and copies kube-vip template over (configured with variables)
+- name: Deploy Kube VIP
+  hosts: servers
+  gather_facts: true
+  roles:
+    - kube-vip
+
+# bootstraps the first server, copies configs to nodes, saves token to use later
+- name: Prepare RKE2 on Servers and Agents
+  hosts: servers,agents
+  gather_facts: true
+  roles:
+    - rke2-prepare
+
+# Adds additional servers using the token from the previous task
+- name: Add additional RKE2 Servers
+  hosts: servers
+  gather_facts: true
+  roles:
+    - add-server
+
+# Adds agents to the cluster
+- name: Add additional RKE2 Agents
+  hosts: agents
+  gather_facts: true
+  roles:
+    - add-agent
+
+# Finish kube-vip, add metallb
+- name: Apply manifests after cluster is created
+  hosts: servers
+  gather_facts: true
+  roles:
+    - apply-manifests

@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: mosquitto
+  name: mosquitto
+  namespace: mosquitto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+        app.kubernetes.io/name: mosquitto
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+      - image: eclipse-mosquitto:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 0.5
+            memory: 500Mi
+        name: mosquitto
+        ports:
+        - containerPort: 1883
+          name: mqtt
+          protocol: TCP
+        - containerPort: 9001
+          name: websocket
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /mosquitto/config/
+          name: mosquitto
+          subPath: config
+        - mountPath: "/mosquitto/data"
+          name: mosquitto
+          subPath: "data"
+        - mountPath: "/mosquitto/log"
+          name: mosquitto
+          subPath: log
+      volumes:
+        - name: mosquitto
+          persistentVolumeClaim:
+            claimName: mosquitto

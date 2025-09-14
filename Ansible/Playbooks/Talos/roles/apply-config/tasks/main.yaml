@@ -1,0 +1,16 @@
+---
+# Generate Machine Configurations. This is using the qemu agent as per: https://www.talos.dev/v1.7/talos-guides/install/virtualized-platforms/proxmox/
+- name: Apply config to first node
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ control_plane_ip }} --file {{ config_directory }}/controlplane.yaml
+  changed_when: true
+
+- name: Apply config to second node
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ control_plane_2 }} --file {{ config_directory }}/controlplane.yaml
+  changed_when: true
+
+- name: Apply config to third node
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ control_plane_3 }} --file {{ config_directory }}/controlplane.yaml
+  changed_when: true

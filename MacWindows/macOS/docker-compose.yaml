@@ -1,0 +1,34 @@
+# https://github.com/dockur/macos
+services:
+  macos:
+    image: dockurr/macos
+    container_name: macos
+    environment:
+      VERSION: "15"
+      DISK_SIZE: "50G"
+      RAM_SIZE: "6G"
+      CPU_CORES: "4"
+    #  DHCP: "Y" # if enabled you must create a macvlan
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006
+      - 5900:5900/tcp
+      - 5900:5900/udp
+    volumes:
+      - ./macos:/storage
+    restart: always
+    stop_grace_period: 2m
+    networks:
+      macos:
+        ipv4_address: 172.70.20.2
+
+networks:
+  macos:
+    ipam:
+      config:
+        - subnet: 172.70.20.0/29
+    name: macos

@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: plex
+  name: plex
+  namespace: plex
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: plex
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: plex
+    spec:
+      affinity: {}
+      containers:
+        - name: plex
+          securityContext:
+            privileged: true
+          image: plexinc/pms-docker:latest
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              path: /identity
+              port: 32400
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /identity
+              port: 32400
+            initialDelaySeconds: 15
+            timeoutSeconds: 10
+          resources: 
+            requests: 
+              gpu.intel.com/i915: "1"
+              cpu: 1000m
+              memory: 7.5Gi
+            limits: 
+              gpu.intel.com/i915: "1"
+          env:
+            - name: PUID
+              value: "99"
+            - name: PGID
+              value: "100"
+            - name: TZ
+              value: Europe/London
+            - name: VERSION
+              value: docker
+            - name: ADVERTISE_IP
+              value: 'https://plex.yourdomain.co.uk:443'
+            - name: ALLOWED_NETWORKS
+              value: 192.168.0.0/16,10.0.0.0/8
+            - name: PLEX_CLAIM
+              value: claim-your-token
+          volumeMounts:
+            - mountPath: /config
+              name: plex-longhorn
+            - mountPath: /transcode
+              name: transcode
+            - mountPath: /data
+              name: plex-longhorn
+            - mountPath: /Films
+              name: plex-smb
+              readOnly: true
+              subPath: Films
+            - mountPath: /TVShows
+              name: plex-smb
+              readOnly: true
+              subPath: TVShows
+            - mountPath: /Audiobooks
+              name: plex-smb
+              readOnly: true
+              subPath: Audiobooks
+            - mountPath: /Music
+              name: plex-smb
+              readOnly: true
+              subPath: Music
+      dnsConfig: {}
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: plex-longhorn
+          persistentVolumeClaim:
+            claimName: plex
+            readOnly: false
+        - name: plex-smb
+          persistentVolumeClaim:
+            claimName: pvc-plex-smb
+            readOnly: true
+        - name: transcode
+          emptyDir:
+            medium: Memory
+            sizeLimit: 10Gi

@@ -1,0 +1,22 @@
+---
+argument_specs:
+  main:
+    short_description: Install kube-vip manifest
+    description: Install kube-vip manifest
+    author:
+      - Jim's Garage
+    options:
+      kube_vip_version:
+        type: str
+        required: false
+        default: v0.8.0
+        description: Version of kube-vip to install
+      vip_interface:
+        type: str
+        required: false
+        default: eth0
+        description: Interface to bind kube-vip
+      vip:
+        type: str
+        required: true
+        description: The virtual IP to use with kube-vip

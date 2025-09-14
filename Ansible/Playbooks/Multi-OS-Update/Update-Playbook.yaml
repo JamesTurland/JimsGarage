@@ -1,0 +1,57 @@
+---
+- name: Update Windows, Arch Linux, and Ubuntu
+  hosts: all
+  tasks:
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Update Windows
+      when: ansible_facts['os_family'] == 'Windows'
+      ansible.windows.win_updates:
+        category_names:
+          - SecurityUpdates
+          - UpdateRollups
+          - CriticalUpdates
+        state: installed
+      register: win_update_result
+
+    - name: Check if Windows requires a reboot
+      when: win_update_result.changed and win_update_result.reboot_required | default(false)
+      ansible.windows.win_reboot:
+        reboot_timeout: 600
+      register: win_reboot_result
+
+    - name: Update Arch Linux
+      when: ansible_facts['os_family'] == 'Arch'
+      community.general.pacman:
+        update_cache: true
+        upgrade: true
+      register: arch_update_result
+
+    - name: Check if Arch Linux requires a reboot
+      when: ansible_facts['os_family'] == 'Arch' and arch_update_result.changed
+      ansible.builtin.stat:
+        path: /run/reboot-required
+      register: arch_reboot_required
+
+    - name: Reboot Arch Linux if required
+      when: arch_reboot_required.stat.exists | default(false)
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+
+    - name: Update Ubuntu
+      when: ansible_facts['os_family'] == 'Debian'
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: true
+
+    - name: Check if a reboot is required on Ubuntu
+      when: ansible_facts['os_family'] == 'Debian'
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: ubuntu_reboot_required
+
+    - name: Reboot Ubuntu if required
+      when: ubuntu_reboot_required.stat.exists | default(false)
+      ansible.builtin.reboot:
+        reboot_timeout: 600

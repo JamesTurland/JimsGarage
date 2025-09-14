@@ -1,0 +1,26 @@
+services:
+  nginx:
+    image: lscr.io/linuxserver/nginx:latest
+    container_name: nginx
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.nginx.entrypoints=http"
+      - "traefik.http.routers.nginx.rule=Host(`nginx.jimsgarage-demos.co.uk`)"
+      - "traefik.http.middlewares.nginx-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.nginx.middlewares=nginx-https-redirect"
+      - "traefik.http.routers.nginx-secure.entrypoints=https"
+      - "traefik.http.routers.nginx-secure.rule=Host(`nginx.jimsgarage-demos.co.uk`)"
+      - "traefik.http.routers.nginx-secure.tls=true"
+      - "traefik.http.routers.nginx-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.nginx-secure.service=nginx"
+      - "traefik.http.services.nginx.loadbalancer.server.port=80"
+networks:
+  proxy:
+    external: true

@@ -1,0 +1,37 @@
+http:
+  middlewares:    
+    default-security-headers:
+      headers:
+        customBrowserXSSValue: 0                            # X-XSS-Protection=1; mode=block
+        contentTypeNosniff: true                          # X-Content-Type-Options=nosniff
+        forceSTSHeader: true                              # Add the Strict-Transport-Security header even when the connection is HTTP
+        frameDeny: false                                   # X-Frame-Options=deny
+        referrerPolicy: "strict-origin-when-cross-origin"
+        stsIncludeSubdomains: true                        # Add includeSubdomains to the Strict-Transport-Security header
+        stsPreload: true                                  # Add preload flag appended to the Strict-Transport-Security header
+        stsSeconds: 3153600                              # Set the max-age of the Strict-Transport-Security header (63072000 = 2 years)
+        contentSecurityPolicy: "default-src 'self'"     
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+    https-redirectscheme:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  routers:
+    portainer:
+      entryPoints:
+        - "https"
+      rule: "Host(`portainer-demo.jimsgarage.co.uk`)"
+      middlewares:
+        - default-security-headers
+        - https-redirectscheme
+      tls: {}
+      service: portainer
+
+  services:
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "https://192.168.200.122:9443"
+        passHostHeader: true
