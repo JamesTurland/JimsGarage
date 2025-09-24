@@ -1,0 +1,38 @@
+services:
+  checkmk:
+    image: "checkmk/check-mk-raw:2.4.0-latest"
+    container_name: "checkmk"
+    environment:
+      - CMK_PASSWORD=mypassword
+      - TZ=Europe/London
+      - CMK_SITE_ID=cmk #Self-defined name of the Checkmk site to be created within the container, if you want to deviate from the default site name cmk.
+      - CMK_LIVESTATUS_TCP=on #Enable Livestatus TCP port (default: off)
+      - MAIL_RELAY_HOST=smtp.example.com #Set the SMTP relay host for sending email notifications (default: off)
+    volumes:
+      - monitoring:/omd/sites
+    tmpfs:
+      - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
+    ports:
+    #  - 8080:5000
+      - 8000:8000
+    restart: always
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.checkmk.entrypoints=http"
+      - "traefik.http.routers.checkmk.rule=Host(`checkmk.jimsgarage.co.uk`)"
+      - "traefik.http.middlewares.checkmk-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.checkmk.middlewares=checkmk-https-redirect"
+      - "traefik.http.routers.checkmk-secure.entrypoints=https"
+      - "traefik.http.routers.checkmk-secure.rule=Host(`checkmk.jimsgarage.co.uk`)"
+      - "traefik.http.routers.checkmk-secure.tls=true"
+      - "traefik.http.routers.checkmk-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.checkmk-secure.service=checkmk"
+      - "traefik.http.services.checkmk.loadbalancer.server.port=5000"
+volumes:
+  monitoring:
+networks:
+  proxy:
+    external: true
