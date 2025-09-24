@@ -1,0 +1,18 @@
+services:
+  checkmk:
+    image: "checkmk/check-mk-raw:2.4.0-latest"
+    container_name: "monitoring"
+    environment:
+      - CMK_PASSWORD=mypassword
+      - TZ=Europe/London
+    volumes:
+      - monitoring:/omd/sites
+    tmpfs:
+      - /opt/omd/sites/cmk/tmp:uid=1000,gid=1000
+    ports:
+      - 8080:5000
+      - 8000:8000
+    restart: always
+
+volumes:
+  monitoring:
