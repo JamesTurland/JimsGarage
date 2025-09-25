@@ -19,9 +19,12 @@ nodeSelector:
 
 ports:
   web:
-    redirectTo:
-      port: websecure
-      priority: 10
+    # HTTP -> HTTPS redirect (new syntax)
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true   # optional; default is 308 if true
   websecure:
     tls:
       enabled: true
