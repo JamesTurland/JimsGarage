@@ -24,7 +24,7 @@ echo -e " \033[32;5m                                                           \
 KVVERSION="v1.0.0"
 
 # K3S Version
-k3sVersion="v1.34.1+k3s1"
+k3sVersion="v1.33.5+k3s1"
 
 # Set the IP addresses of the master and work nodes
 master1=192.168.3.21
