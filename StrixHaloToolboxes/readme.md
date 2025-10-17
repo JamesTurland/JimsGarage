@@ -68,6 +68,17 @@ sudo reboot
 sudo dmesg | grep -i 'amdgpu.*memory'
 ```
 
+## Ubuntu Users
+If you do not wish to run as root, create rule:
+```bash
+sudo nano /etc/udev/rules.d/99-amd-kfd.rules
+```
+Paste the following:
+```bash
+SUBSYSTEM=="kfd", GROUP="render", MODE="0666", OPTIONS+="last_rule"
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", GROUP="render", MODE="0666", OPTIONS+="last_rule"
+```
+
 ## Toolbox / Container workflow
 Install Podman Toolbox if desired:
 ```bash
