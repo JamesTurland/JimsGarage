@@ -1,0 +1,12 @@
+# Ignore the real env file
+.env
+
+# Ignore secret files
+secret_file
+
+# Ignore Traefik ACME JSON and logs
+config/acme.json
+config/logs/
+
+# Ignore other sensitive files
+duckdns-token
