@@ -22,7 +22,7 @@ http:
     portainer:
       entryPoints:
         - "https"
-      rule: "Host(`portainer-demo.jimsgarage.co.uk`)"
+      rule: "Host(`portainer.commitandpray.duckdns.org`)"
       middlewares:
         - default-security-headers
         - https-redirectscheme
@@ -33,5 +33,5 @@ http:
     portainer:
       loadBalancer:
         servers:
-          - url: "https://192.168.200.122:9443"
+          - url: "https://192.168.1.39:9443"
         passHostHeader: true
