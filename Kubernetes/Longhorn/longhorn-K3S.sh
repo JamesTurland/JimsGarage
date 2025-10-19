@@ -42,6 +42,9 @@ storage=($longhorn1 $longhorn2 $longhorn3)
 #ssh certificate name variable
 certName=id_rsa
 
+# K3S Version
+k3sVersion="v1.26.10+k3s2"
+
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
@@ -69,7 +72,7 @@ for newnode in "${storage[@]}"; do
     --ip $newnode \
     --user $user \
     --sudo \
-    --k3s-channel stable \
+    --k3s-version $k3sVersion \
     --server-ip $master1 \
     --k3s-extra-args "--node-label \"longhorn=true\"" \
     --ssh-key $HOME/.ssh/$certName
