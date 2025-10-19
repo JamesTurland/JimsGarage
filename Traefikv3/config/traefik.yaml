@@ -40,9 +40,9 @@ certificatesResolvers:
         propagation:
           delayBeforeChecks: 60s
         # disablePropagationCheck: true # Some people using Cloudflare note this can solve DNS propagation issues.
-        # resolvers:
-        #   - "1.1.1.1:53"
-        #   - "1.0.0.1:53"
+        resolvers:
+          - "172.23.0.7:53"
+          - "100.87.172.94:53"
 
 log:
   level: "INFO"

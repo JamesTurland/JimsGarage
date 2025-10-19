@@ -12,6 +12,8 @@ services:
     container_name: pihole
     hostname: pihole
     image: pihole/pihole:latest # remember to change this if you're using rpi
+    cap_add:
+      - NET_ADMIN
     networks:
       dns_net:
         ipv4_address: 172.23.0.7
@@ -23,8 +25,9 @@ services:
     #- "443:443/tcp"
     environment:
       TZ: 'Europe/Berlin'
-      WEBPASSWORD: ''
+      WEBPASSWORD: 'password'
       PIHOLE_DNS_: '172.23.0.8#5053'
+      #DNSMASQ_LISTENING: all   # <-- allows Pi-hole to answer outside its container subnet
     volumes:
       - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
       - '/home/ubuntu/docker/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
