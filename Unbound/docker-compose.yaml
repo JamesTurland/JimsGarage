@@ -1,5 +1,3 @@
-version: '3'
-
 networks:
   dns_net:
     driver: bridge
@@ -24,8 +22,8 @@ services:
       - "85:80/tcp"
     #- "443:443/tcp"
     environment:
-      TZ: 'Europe/London'
-      WEBPASSWORD: 'password'
+      TZ: 'Europe/Berlin'
+      WEBPASSWORD: ''
       PIHOLE_DNS_: '172.23.0.8#5053'
     volumes:
       - '/home/ubuntu/docker/pihole/etc-pihole/:/etc/pihole/'
@@ -34,11 +32,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pihole.entrypoints=http"
-      - "traefik.http.routers.pihole.rule=Host(`pihole.yourdomain.com`)"
+      - "traefik.http.routers.pihole.rule=Host(`pihole.commitandpray.duckdns.org`)"
       - "traefik.http.middlewares.pihole-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.pihole.middlewares=pihole-https-redirect"
       - "traefik.http.routers.pihole-secure.entrypoints=https"
-      - "traefik.http.routers.pihole-secure.rule=Host(`pihole.yourdomain.com`)"
+      - "traefik.http.routers.pihole-secure.rule=Host(`pihole.commitandpray.duckdns.org`)"
       - "traefik.http.routers.pihole-secure.tls=true"
       - "traefik.http.routers.pihole-secure.service=pihole"
       - "traefik.http.services.pihole.loadbalancer.server.port=80"
