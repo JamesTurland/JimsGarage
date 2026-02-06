@@ -1,0 +1,22 @@
+services:
+  nut-upsd:
+    image: instantlinux/nut-upsd
+    container_name: nut-upsd
+    devices:
+      - /dev/bus/usb
+    restart: unless-stopped
+
+  peanut:
+    image: brandawg93/peanut:latest
+    container_name: PeaNUT
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+    environment:
+      - WEB_PORT=8080
+
+networks:
+  default:
+    name: nut_network
