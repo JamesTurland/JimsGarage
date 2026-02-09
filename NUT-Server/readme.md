@@ -23,6 +23,20 @@
     actions = FSD
     instcmds = ALL
 ```
+
+# Example of using SMTP
+```
+[ups]
+    driver = snmp-ups
+    port = 192.168.1.104
+    snmp_version = v1
+    community = public
+    desc = Network UPS
+    pollinterval = 1
+    pollfreq = 1
+    user = nut
+    group = nut 
+```
  
 # Commands for client setup
 ```
