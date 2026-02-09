@@ -24,7 +24,7 @@
     instcmds = ALL
 ```
 
-# Example of using SMTP
+# Example of using SNMP
 ```
 [ups]
     driver = snmp-ups
