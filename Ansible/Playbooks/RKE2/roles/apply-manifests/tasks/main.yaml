@@ -12,7 +12,7 @@
 # Create namespace so that we can deploy metallb
 - name: Apply metallb namespace
   ansible.builtin.command:
-    cmd: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+    cmd: kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/{{ metallb_version }}/manifests/namespace.yaml
   become_user: "{{ ansible_user }}"
   changed_when: true
   when: inventory_hostname == groups['servers'][0]
@@ -48,7 +48,7 @@
     dest: /home/{{ ansible_user }}/ippool.yaml
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
-    mode: '0755'
+    mode: "0755"
   when: inventory_hostname == groups['servers'][0]
 
 # don't think this will work as nodes are no execute, might need agents first
