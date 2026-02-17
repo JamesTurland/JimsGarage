@@ -1,10 +1,12 @@
 1) Create a config file
 
+```
 sudo docker run -it --rm \
    --mount type=volume,src=synapse-data,dst=/data \
    -e SYNAPSE_SERVER_NAME=matrix.jimsgarage.co.uk \
    -e SYNAPSE_REPORT_STATS=no \
    matrixdotorg/synapse:latest generate
+```
 
 2) become root and access the file
 
