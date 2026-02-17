@@ -9,7 +9,7 @@ http:
         referrerPolicy: "strict-origin-when-cross-origin"
         stsIncludeSubdomains: true                        # Add includeSubdomains to the Strict-Transport-Security header
         stsPreload: true                                  # Add preload flag appended to the Strict-Transport-Security header
-        stsSeconds: 3153600                              # Set the max-age of the Strict-Transport-Security header (63072000 = 2 years)
+        stsSeconds: 31536000                              # Set the max-age of the Strict-Transport-Security header (63072000 = 2 years)
         contentSecurityPolicy: "default-src 'self'"     
         customRequestHeaders:
           X-Forwarded-Proto: https
