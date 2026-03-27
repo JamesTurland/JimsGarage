@@ -1,9 +1,9 @@
 write-kubeconfig-mode: "0644"
 tls-san:
   - {{ vip }}
-  - {{ hostvars['server1']['ansible_host'] }}
-  - {{ hostvars['server2']['ansible_host'] }}
-  - {{ hostvars['server3']['ansible_host'] }}
+{% for host in groups['servers'] %}
+  - {{ hostvars[host]['ansible_host'] }}
+{% endfor %}
 node-label:
   - server=true
 disable:
