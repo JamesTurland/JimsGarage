@@ -17,7 +17,7 @@
           type: traefik
           url: https://traefik.jimsgarage.co.uk
           username: admin
-          password: gT8ni3iX6QkKreWfAdYKe4xqVsaMRUQ4GG7xn59Q
+          password: gT8ni3iX6QkKreWfAdYKe4xqVsaMRUQ4GG7xn59Q  # gitleaks:allow
 
     - PiHole:
         icon: pi-hole.png
@@ -28,7 +28,7 @@
         widget:
           type: pihole
           url: http://192.168.8.2
-          key: 73T8oBs9MFKLVAC3mAs2KQbWSsqA7oe2PN9r9H4TQWg2TXNAdq4ZPzvy8oEv
+          key: 73T8oBs9MFKLVAC3mAs2KQbWSsqA7oe2PN9r9H4TQWg2TXNAdq4ZPzvy8oEv  # gitleaks:allow
 
 - My Second Group:
     - My Second Service:
