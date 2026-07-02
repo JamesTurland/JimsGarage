@@ -33,10 +33,20 @@
   become_user: "{{ ansible_user }}"
   when: inventory_hostname == groups['servers'][0]
 
+# Deploy L2 Advertisement to Server 1 (templated so it matches lb_pool_name)
+- name: Copy metallb L2 Advertisement to server 1
+  ansible.builtin.template:
+    src: templates/metallb-l2advertisement.j2
+    dest: /home/{{ ansible_user }}/l2advertisement.yaml
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+  when: inventory_hostname == groups['servers'][0]
+
 # Apply L2 Advertisement for metallb
 - name: Apply metallb L2 Advertisement
   ansible.builtin.command:
-    cmd: kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/RKE2/l2Advertisement.yaml
+    cmd: kubectl apply -f /home/{{ ansible_user }}/l2advertisement.yaml
   become_user: "{{ ansible_user }}"
   changed_when: true
   when: inventory_hostname == groups['servers'][0]
