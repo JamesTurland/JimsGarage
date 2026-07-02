@@ -26,9 +26,9 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
-  
+
   core:
-    image: ghcr.io/mbecker20/komodo:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    image: ghcr.io/moghtech/komodo-core:2.2.0
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
@@ -52,16 +52,16 @@ services:
       # - /path/to/syncs:/syncs
       ## Optionally mount a custom core.config.toml
       # - /path/to/core.config.toml:/config/config.toml
-    ## Allows for systemd Periphery connection at 
+    ## Allows for systemd Periphery connection at
     ## "http://host.docker.internal:8120"
     # extra_hosts:
     #   - host.docker.internal:host-gateway
 
   ## Deploy Periphery container using this block,
-  ## or deploy the Periphery binary with systemd using 
+  ## or deploy the Periphery binary with systemd using
   ## https://github.com/mbecker20/komodo/tree/main/scripts
   periphery:
-    image: ghcr.io/mbecker20/periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    image: ghcr.io/moghtech/komodo-periphery:2.2.0
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
@@ -75,13 +75,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       ## Allow Periphery to see processes outside of container
       - /proc:/proc
-      ## use self signed certs in docker volume, 
+      ## use self signed certs in docker volume,
       ## or mount your own signed certs.
       - ssl-certs:/etc/komodo/ssl
-      ## manage repos in a docker volume, 
+      ## manage repos in a docker volume,
       ## or change it to an accessible host directory.
       - repos:/etc/komodo/repos
-      ## manage stack files in a docker volume, 
+      ## manage stack files in a docker volume,
       ## or change it to an accessible host directory.
       - stacks:/etc/komodo/stacks
       ## Optionally mount a path to store compose files
