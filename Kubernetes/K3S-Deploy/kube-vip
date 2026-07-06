@@ -1,10 +1,9 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  creationTimestamp: null
   labels:
     app.kubernetes.io/name: kube-vip-ds
-    app.kubernetes.io/version: v0.8.2
+    app.kubernetes.io/version: v1.2.1
   name: kube-vip-ds
   namespace: kube-system
 spec:
@@ -13,10 +12,9 @@ spec:
       app.kubernetes.io/name: kube-vip-ds
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app.kubernetes.io/name: kube-vip-ds
-        app.kubernetes.io/version: v0.8.2
+        app.kubernetes.io/version: v1.2.1
     spec:
       affinity:
         nodeAffinity:
@@ -36,36 +34,38 @@ spec:
           value: "true"
         - name: port
           value: "6443"
+        - name: vip_nodename
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: vip_interface
-          value: $interface
-        - name: vip_cidr
+          value: REPLACE_INTERFACE
+        - name: vip_subnet
           value: "32"
+        - name: dns_mode
+          value: first
+        - name: dhcp_mode
+          value: ipv4
         - name: cp_enable
           value: "true"
         - name: cp_namespace
           value: kube-system
-        - name: vip_ddns
-          value: "false"
-        - name: svc_enable
-          value: "false"
-        - name: svc_leasename
-          value: plndr-svcs-lock
         - name: vip_leaderelection
           value: "true"
         - name: vip_leasename
           value: plndr-cp-lock
         - name: vip_leaseduration
-          value: "5"
+          value: "15"
         - name: vip_renewdeadline
-          value: "3"
+          value: "10"
         - name: vip_retryperiod
-          value: "1"
+          value: "2"
         - name: address
-          value: $vip
+          value: REPLACE_VIP
         - name: prometheus_server
           value: :2112
-        image: ghcr.io/kube-vip/kube-vip:v0.8.2
-        imagePullPolicy: Always
+        image: ghcr.io/kube-vip/kube-vip:v1.2.1
+        imagePullPolicy: IfNotPresent
         name: kube-vip
         resources: {}
         securityContext:
@@ -73,17 +73,24 @@ spec:
             add:
             - NET_ADMIN
             - NET_RAW
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /etc/kubernetes/admin.conf
+          name: kubeconfig
+      hostAliases:
+      - hostnames:
+        - kubernetes
+        ip: 127.0.0.1
       hostNetwork: true
-      serviceAccountName: kube-vip
       tolerations:
       - effect: NoSchedule
         operator: Exists
       - effect: NoExecute
         operator: Exists
+      volumes:
+      - hostPath:
+          path: /etc/kubernetes/admin.conf
+        name: kubeconfig
   updateStrategy: {}
-status:
-  currentNumberScheduled: 0
-  desiredNumberScheduled: 0
-  numberMisscheduled: 0
-  numberReady: 0
 
