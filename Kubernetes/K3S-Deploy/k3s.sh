@@ -250,7 +250,23 @@ REMOTE
 done
 ok "kube-vip deployed to ${#masters_all[@]} control-plane nodes"
 info "Pointing local kubeconfig at the VIP ($vip)"
-sed -i "s/$master1/$vip/g" "$HOME/.kube/config"
+# Rewrite only the server URL (anchored) to avoid the regex dots in the IP
+# matching anything else in the kubeconfig (e.g. base64 cert data).
+sed -i "s#https://$master1:6443#https://$vip:6443#" "$HOME/.kube/config"
+
+# Confirm the VIP is actually answering before any VIP-routed kubectl below.
+# This is an early tripwire for a broken kube-vip (wrong interface, RBAC, etc.)
+# instead of a confusing failure further down.
+info "Waiting for the control-plane VIP ($vip) to answer"
+vip_ready=""
+for _ in $(seq 1 30); do
+  if kubectl --request-timeout=5s get --raw='/readyz' &>/dev/null; then
+    vip_ready=1; break
+  fi
+  sleep 2
+done
+[[ -n "$vip_ready" ]] || die "Control-plane VIP $vip is not answering — check kube-vip on the masters: kubectl -n kube-system logs -l app.kubernetes.io/name=kube-vip-ds"
+ok "Control-plane VIP is answering"
 
 # ── Step 6/9 · Fetch the cluster join token ────────────────────────────
 step "Step 6/9 · Fetch the cluster join token"
