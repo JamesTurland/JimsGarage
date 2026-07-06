@@ -2,7 +2,7 @@
 #
 # JimsGarage — K3S HA deploy (k3sup + kube-vip + MetalLB)
 # Tutorial: https://youtube.com/@jims-garage
-# See ./readme.md for prerequisites, configuration, and what changed
+# See ./README.md for prerequisites, configuration, and what changed
 # from the original video.
 
 set -euo pipefail
@@ -166,7 +166,7 @@ fi
 # ── Step 2/9 · SSH keys and known_hosts ────────────────────────────────
 step "Step 2/9 · SSH keys and known_hosts"
 mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
-# If the key was dropped in $HOME (per the readme), move it into ~/.ssh.
+# If the key was dropped in $HOME (per the README), move it into ~/.ssh.
 if [[ -f "$HOME/$certName" && ! -f "$ssh_key" ]]; then
   info "Moving $certName into ~/.ssh"
   cp "$HOME/$certName" "$ssh_key"

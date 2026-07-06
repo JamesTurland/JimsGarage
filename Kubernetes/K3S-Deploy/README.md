@@ -53,11 +53,11 @@ duplicate LoadBalancer controllers.
 
 ### Options (environment variables)
 
-| Variable | Purpose |
-| --- | --- |
-| `ASSUME_YES=1` | Skip the pre-flight `[y/N]` prompt (unattended runs). |
-| `NO_COLOR=1` | Disable colored output. |
-| `RAW_BASE=<url>` | Base URL for manifests (default: `main`). |
+| Variable         | Purpose                                               |
+| ---------------- | ----------------------------------------------------- |
+| `ASSUME_YES=1`   | Skip the pre-flight `[y/N]` prompt (unattended runs). |
+| `NO_COLOR=1`     | Disable colored output.                               |
+| `RAW_BASE=<url>` | Base URL for the sibling manifests (default: `main`). |
 
 ### Tracking the latest k3s instead of a pinned version
 
