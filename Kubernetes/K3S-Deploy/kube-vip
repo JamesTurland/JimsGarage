@@ -75,22 +75,12 @@ spec:
             - NET_RAW
             drop:
             - ALL
-        volumeMounts:
-        - mountPath: /etc/kubernetes/admin.conf
-          name: kubeconfig
-      hostAliases:
-      - hostnames:
-        - kubernetes
-        ip: 127.0.0.1
       hostNetwork: true
+      serviceAccountName: kube-vip
       tolerations:
       - effect: NoSchedule
         operator: Exists
       - effect: NoExecute
         operator: Exists
-      volumes:
-      - hostPath:
-          path: /etc/kubernetes/admin.conf
-        name: kubeconfig
   updateStrategy: {}
 
