@@ -126,7 +126,7 @@ printf '  %-16s %s\n' \
 if [[ "${ASSUME_YES:-}" == "1" ]]; then
   info "ASSUME_YES=1 — proceeding without prompt"
 else
-  read -rp "$(printf '\n Proceed? [y/N] ')" reply
+  read -rp "$(printf '\n Proceed? [y/N] ')" reply || reply=""
   [[ "$reply" =~ ^[Yy]$ ]] || die "Aborted."
 fi
 
@@ -326,7 +326,7 @@ done
 
 kubectl get nodes -o wide || true
 step "Done · cluster ready"
-ready_nodes="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2=="Ready"{c++} END{print c+0}')"
+ready_nodes="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2=="Ready"{c++} END{print c+0}')" || ready_nodes=0
 ok "$ready_nodes nodes Ready · context '$context'"
 ok "API server: https://$vip:6443"
 if [[ -n "$lb_ip" ]]; then
