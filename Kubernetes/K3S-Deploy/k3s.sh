@@ -135,7 +135,16 @@ step "Step 1/9 · Local tools (k3sup, kubectl)"
 if ! command -v k3sup &>/dev/null; then
   info "Installing k3sup"
   curl -sLS https://get.k3sup.dev | sh
-  sudo install k3sup /usr/local/bin/
+  # The installer leaves the binary in the CWD — named "k3sup", or
+  # "k3sup-<arch>" when run unprivileged (it can't self-install to
+  # /usr/local/bin). Install whichever it produced.
+  k3sup_bin=""
+  for f in k3sup k3sup-*; do
+    [[ -f "$f" ]] && { k3sup_bin="$f"; break; }
+  done
+  [[ -n "$k3sup_bin" ]] || die "k3sup installer produced no binary"
+  sudo install "$k3sup_bin" /usr/local/bin/k3sup
+  rm -f k3sup k3sup-*
 else
   ok "k3sup present"
 fi
@@ -239,11 +248,13 @@ sed "s/REPLACE_INTERFACE/$interface/g; s/REPLACE_VIP/$vip/g" \
   "$HOME/kube-vip.src" > "$HOME/kube-vip.yaml"
 for node in "${masters_all[@]}"; do
   info "Placing kube-vip manifest on $node"
-  scp "${ssh_opts[@]}" "$HOME/kube-vip.yaml" "$user@$node:~/kube-vip.yaml" >/dev/null
+  # scp to /tmp (absolute) — the mv below runs as root, where ~ is /root,
+  # not the ssh user's home where scp would otherwise land the file.
+  scp "${ssh_opts[@]}" "$HOME/kube-vip.yaml" "$user@$node:/tmp/kube-vip.yaml" >/dev/null
   ssh "${ssh_opts[@]}" "$user@$node" 'sudo bash -s' <<'REMOTE'
 set -e
 mkdir -p /var/lib/rancher/k3s/server/manifests
-mv ~/kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+mv /tmp/kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 chown root:root /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 chmod 600 /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 REMOTE
