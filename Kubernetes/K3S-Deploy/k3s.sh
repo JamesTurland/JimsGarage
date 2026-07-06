@@ -1,232 +1,337 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# JimsGarage — K3S HA deploy (k3sup + kube-vip + MetalLB)
+# Tutorial: https://youtube.com/@jims-garage
+# See ./readme.md for prerequisites, configuration, and what changed
+# from the original video.
 
+set -euo pipefail
+
+# ── Banner (kept from the original tutorial; blink preserved) ──────────
 echo -e " \033[33;5m    __  _          _        ___                            \033[0m"
 echo -e " \033[33;5m    \ \(_)_ __ ___( )__    / _ \__ _ _ __ __ _  __ _  ___  \033[0m"
 echo -e " \033[33;5m     \ \ | '_ \` _ \/ __|  / /_\/ _\` | '__/ _\` |/ _\` |/ _ \ \033[0m"
 echo -e " \033[33;5m  /\_/ / | | | | | \__ \ / /_\\  (_| | | | (_| | (_| |  __/ \033[0m"
 echo -e " \033[33;5m  \___/|_|_| |_| |_|___/ \____/\__,_|_|  \__,_|\__, |\___| \033[0m"
 echo -e " \033[33;5m                                               |___/       \033[0m"
-
 echo -e " \033[36;5m         _  _________   ___         _        _ _           \033[0m"
 echo -e " \033[36;5m        | |/ |__ / __| |_ _|_ _  __| |_ __ _| | |          \033[0m"
 echo -e " \033[36;5m        | ' < |_ \__ \  | || ' \(_-|  _/ _\` | | |          \033[0m"
 echo -e " \033[36;5m        |_|\_|___|___/ |___|_||_/__/\__\__,_|_|_|          \033[0m"
-echo -e " \033[36;5m                                                           \033[0m"
 echo -e " \033[32;5m             https://youtube.com/@jims-garage              \033[0m"
-echo -e " \033[32;5m                                                           \033[0m"
 
+# ── Output helpers (non-blinking; auto-disable when not a TTY) ──────────
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  c_reset=$'\033[0m'; c_step=$'\033[1;36m'; c_info=$'\033[36m'
+  c_ok=$'\033[32m';   c_warn=$'\033[33m';   c_err=$'\033[31m'
+else
+  c_reset=; c_step=; c_info=; c_ok=; c_warn=; c_err=
+fi
+step() { printf '\n%s━━━ %s ━━━%s\n' "$c_step" "$*" "$c_reset"; }
+info() { printf ' %s•%s %s\n'  "$c_info" "$c_reset" "$*"; }
+ok()   { printf ' %s✓%s %s\n'  "$c_ok"   "$c_reset" "$*"; }
+warn() { printf ' %s!%s %s\n'  "$c_warn" "$c_reset" "$*" >&2; }
+err()  { printf ' %s✗%s %s\n'  "$c_err"  "$c_reset" "$*" >&2; }
+die()  { err "$*"; exit 1; }
 
 #############################################
 # YOU SHOULD ONLY NEED TO EDIT THIS SECTION #
 #############################################
 
-# Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+# k3s version to install. To always track the latest stable release
+# instead, set k3sChannel="stable" and leave k3sVersion empty (see README).
+k3sVersion="v1.35.6+k3s1"
+k3sChannel=""
 
-# K3S Version
-k3sVersion="v1.26.10+k3s2"
+# kube-vip: must match the image tag baked into the ./kube-vip manifest.
+# To bump, regenerate ./kube-vip (see README "Upgrading kube-vip").
+KVVERSION="v1.2.1"
 
-# Set the IP addresses of the master and work nodes
+# MetalLB version (used to build the manifest URL).
+METALLB_VERSION="v0.16.0"
+
+# Node IP addresses
 master1=192.168.3.21
 master2=192.168.3.22
 master3=192.168.3.23
 worker1=192.168.3.24
 worker2=192.168.3.25
 
-# User of remote machines
+# SSH user on the remote nodes
 user=ubuntu
 
-# Interface used on remotes
+# Network interface used on the remote nodes
 interface=eth0
 
-# Set the virtual IP address (VIP)
+# Virtual IP (VIP) for the HA control plane
 vip=192.168.3.50
 
-# Array of master nodes
-masters=($master2 $master3)
-
-# Array of worker nodes
-workers=($worker1 $worker2)
-
-# Array of all
-all=($master1 $master2 $master3 $worker1 $worker2)
-
-# Array of all minus master
-allnomaster1=($master2 $master3 $worker1 $worker2)
-
-#Loadbalancer IP range
+# MetalLB LoadBalancer address range
 lbrange=192.168.3.60-192.168.3.80
 
-#ssh certificate name variable
+# SSH private key name (in ~/.ssh) used to reach the nodes
 certName=id_rsa
 
-#ssh config file
-config_file=~/.ssh/config
+# kubeconfig context name to create locally
+context=k3s-ha
 
 #############################################
 #            DO NOT EDIT BELOW              #
 #############################################
-# For testing purposes - in case time is wrong due to VM snapshots
-sudo timedatectl set-ntp off
-sudo timedatectl set-ntp on
 
-# Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
-chmod 644 /home/$user/.ssh/$certName.pub
+# Additional control-plane servers joined after master1
+masters=("$master2" "$master3")
+# Agent (worker) nodes
+workers=("$worker1" "$worker2")
+# All control-plane nodes (kube-vip manifest is placed on each)
+masters_all=("$master1" "${masters[@]}")
+# Every node (for SSH prep loops)
+all=("$master1" "${masters[@]}" "${workers[@]}")
 
-# Install k3sup to local machine if not already present
-if ! command -v k3sup version &> /dev/null
-then
-    echo -e " \033[31;5mk3sup not found, installing\033[0m"
-    curl -sLS https://get.k3sup.dev | sh
-    sudo install k3sup /usr/local/bin/
+# Base URL for the sibling manifests (kube-vip, ipAddressPool,
+# l2Advertisement). Override to test from a branch/fork/local copy, e.g.
+#   RAW_BASE="file://$HOME/JimsGarage"
+RAW_BASE="${RAW_BASE:-https://raw.githubusercontent.com/JamesTurland/JimsGarage/main}"
+manifest_base="$RAW_BASE/Kubernetes/K3S-Deploy"
+
+ssh_key="$HOME/.ssh/$certName"
+ssh_opts=(-i "$ssh_key" -o StrictHostKeyChecking=accept-new)
+
+# k3s version selector: prefer an explicit version, else a channel.
+if [[ -n "$k3sVersion" ]]; then
+  k3s_selector=(--k3s-version "$k3sVersion"); k3s_display="$k3sVersion"
 else
-    echo -e " \033[32;5mk3sup already installed\033[0m"
+  k3s_selector=(--k3s-channel "${k3sChannel:-stable}"); k3s_display="channel:${k3sChannel:-stable}"
 fi
 
-# Install Kubectl if not already present
-if ! command -v kubectl version &> /dev/null
-then
-    echo -e " \033[31;5mKubectl not found, installing\033[0m"
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+# Control-plane k3s args: disable bundled traefik + servicelb (we use
+# MetalLB), pin the flannel interface + node IP, taint as control-plane.
+# Explicit --disable is kept (not k3sup --no-extras) for tutorial clarity.
+server_extra_args() {  # $1 = node ip
+  printf '%s' "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$1 --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule"
+}
+
+# ── Pre-flight: show config, confirm before touching any node ──────────
+step "Pre-flight · review configuration"
+printf '  %-16s %s\n' \
+  "k3s:"           "$k3s_display" \
+  "kube-vip:"      "$KVVERSION" \
+  "metallb:"       "$METALLB_VERSION" \
+  "control plane:" "${masters_all[*]}" \
+  "workers:"       "${workers[*]}" \
+  "api VIP:"       "$vip (interface $interface)" \
+  "lb range:"      "$lbrange" \
+  "ssh user/key:"  "$user / $ssh_key" \
+  "kube context:"  "$context"
+if [[ "${ASSUME_YES:-}" == "1" ]]; then
+  info "ASSUME_YES=1 — proceeding without prompt"
 else
-    echo -e " \033[32;5mKubectl already installed\033[0m"
+  read -rp "$(printf '\n Proceed? [y/N] ')" reply
+  [[ "$reply" =~ ^[Yy]$ ]] || die "Aborted."
 fi
 
-# Check for SSH config file, create if needed, add/change Strict Host Key Checking (don't use in production!)
-
-if [ ! -f "$config_file" ]; then
-  # Create the file and add the line
-  echo "StrictHostKeyChecking no" > "$config_file"
-  # Set permissions to read and write only for the owner
-  chmod 600 "$config_file"
-  echo "File created and line added."
+# ── Step 1/9 · Local tools (k3sup, kubectl) ────────────────────────────
+step "Step 1/9 · Local tools (k3sup, kubectl)"
+if ! command -v k3sup &>/dev/null; then
+  info "Installing k3sup"
+  curl -sLS https://get.k3sup.dev | sh
+  sudo install k3sup /usr/local/bin/
 else
-  # Check if the line exists
-  if grep -q "^StrictHostKeyChecking" "$config_file"; then
-    # Check if the value is not "no"
-    if ! grep -q "^StrictHostKeyChecking no" "$config_file"; then
-      # Replace the existing line
-      sed -i 's/^StrictHostKeyChecking.*/StrictHostKeyChecking no/' "$config_file"
-      echo "Line updated."
-    else
-      echo "Line already set to 'no'."
-    fi
-  else
-    # Add the line to the end of the file
-    echo "StrictHostKeyChecking no" >> "$config_file"
-    echo "Line added."
-  fi
+  ok "k3sup present"
+fi
+if ! command -v kubectl &>/dev/null; then
+  info "Installing kubectl"
+  arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+  case "$arch" in
+    amd64|x86_64) arch=amd64 ;;
+    arm64|aarch64) arch=arm64 ;;
+    *) die "Unsupported architecture for kubectl: $arch" ;;
+  esac
+  kver="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+  curl -LO "https://dl.k8s.io/release/${kver}/bin/linux/${arch}/kubectl"
+  sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+else
+  ok "kubectl present"
 fi
 
-#add ssh keys for all nodes
+# ── Step 2/9 · SSH keys and known_hosts ────────────────────────────────
+step "Step 2/9 · SSH keys and known_hosts"
+mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+# If the key was dropped in $HOME (per the readme), move it into ~/.ssh.
+if [[ -f "$HOME/$certName" && ! -f "$ssh_key" ]]; then
+  info "Moving $certName into ~/.ssh"
+  cp "$HOME/$certName" "$ssh_key"
+  [[ -f "$HOME/$certName.pub" ]] && cp "$HOME/$certName.pub" "$ssh_key.pub"
+fi
+[[ -f "$ssh_key" ]] || die "SSH key not found: $ssh_key (see README prerequisites)"
+chmod 600 "$ssh_key"; [[ -f "$ssh_key.pub" ]] && chmod 644 "$ssh_key.pub"
+# Trust host keys without clobbering ~/.ssh/config (issue #62).
 for node in "${all[@]}"; do
-  ssh-copy-id $user@$node
+  ssh-keyscan "$node" 2>/dev/null >> "$HOME/.ssh/known_hosts" || \
+    warn "ssh-keyscan failed for $node (will accept-new on first connect)"
+done
+[[ -f "$HOME/.ssh/known_hosts" ]] && sort -u "$HOME/.ssh/known_hosts" -o "$HOME/.ssh/known_hosts"
+# Distribute the public key to each node.
+for node in "${all[@]}"; do
+  info "Copying SSH key to $user@$node"
+  ssh-copy-id -i "$ssh_key.pub" -o StrictHostKeyChecking=accept-new "$user@$node" >/dev/null 2>&1 || \
+    warn "ssh-copy-id to $node failed (key may already be present)"
+done
+ok "SSH ready for ${#all[@]} nodes"
+
+# ── Step 3/9 · Prepare nodes (time sync + prerequisites) ───────────────
+step "Step 3/9 · Prepare nodes (time sync + prerequisites)"
+for node in "${all[@]}"; do
+  info "Preparing $node"
+  rc=0
+  ssh "${ssh_opts[@]}" "$user@$node" 'sudo bash -s' <<'REMOTE' || rc=$?
+set -e
+# Resync time — VM snapshots drift, which breaks k3s/k3sup installs (issue #68).
+timedatectl set-ntp off || true
+timedatectl set-ntp on  || true
+if command -v apt-get >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+  ok=0
+  for i in $(seq 1 10); do
+    if apt-get update && apt-get install -y iptables sudo policycoreutils; then ok=1; break; fi
+    echo "apt busy, retry $i/10..."; sleep 3
+  done
+  [ "$ok" = 1 ] || exit 91
+else
+  exit 90
+fi
+REMOTE
+  case "$rc" in
+    0)  ok "$node prepared" ;;
+    90) die "Node $node is not apt-based. This script targets Ubuntu/Debian; install iptables, sudo, and policycoreutils manually (see README)." ;;
+    91) die "Node $node: apt failed after retries." ;;
+    *)  die "Node $node: preparation failed (exit $rc)." ;;
+  esac
 done
 
-# Install policycoreutils for each node
-for newnode in "${all[@]}"; do
-  ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
-  NEEDRESTART_MODE=a apt-get install policycoreutils -y
-  exit
-EOF
-  echo -e " \033[32;5mPolicyCoreUtils installed!\033[0m"
-done
-
-# Step 1: Bootstrap First k3s Node
-mkdir ~/.kube
+# ── Step 4/9 · Bootstrap first control-plane node ──────────────────────
+step "Step 4/9 · Bootstrap first control-plane node ($master1)"
+mkdir -p "$HOME/.kube"
 k3sup install \
-  --ip $master1 \
-  --user $user \
-  --tls-san $vip \
-  --cluster \
-  --k3s-version $k3sVersion \
-  --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$master1 --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
-  --merge \
+  --ip "$master1" \
+  --user "$user" \
   --sudo \
-  --local-path $HOME/.kube/config \
-  --ssh-key $HOME/.ssh/$certName \
-  --context k3s-ha
-echo -e " \033[32;5mFirst Node bootstrapped successfully!\033[0m"
+  --tls-san "$vip" \
+  --cluster \
+  "${k3s_selector[@]}" \
+  --k3s-extra-args "$(server_extra_args "$master1")" \
+  --merge \
+  --local-path "$HOME/.kube/config" \
+  --ssh-key "$ssh_key" \
+  --context "$context"
+ok "First node bootstrapped"
 
-# Step 2: Install Kube-VIP for HA
+# ── Step 5/9 · Install kube-vip (control-plane VIP) ────────────────────
+step "Step 5/9 · Install kube-vip (control-plane VIP)"
+# Ensure kubectl targets the cluster we just created (the merge above may
+# have left a different current-context in a pre-existing ~/.kube/config).
+kubectl config use-context "$context" >/dev/null
+info "Applying kube-vip RBAC"
 kubectl apply -f https://kube-vip.io/manifests/rbac.yaml
+info "Rendering kube-vip manifest (interface=$interface, vip=$vip)"
+curl -sfL "$manifest_base/kube-vip" -o "$HOME/kube-vip.src"
+sed "s/REPLACE_INTERFACE/$interface/g; s/REPLACE_VIP/$vip/g" \
+  "$HOME/kube-vip.src" > "$HOME/kube-vip.yaml"
+for node in "${masters_all[@]}"; do
+  info "Placing kube-vip manifest on $node"
+  scp "${ssh_opts[@]}" "$HOME/kube-vip.yaml" "$user@$node:~/kube-vip.yaml" >/dev/null
+  ssh "${ssh_opts[@]}" "$user@$node" 'sudo bash -s' <<'REMOTE'
+set -e
+mkdir -p /var/lib/rancher/k3s/server/manifests
+mv ~/kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+chown root:root /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+chmod 600 /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
+REMOTE
+done
+ok "kube-vip deployed to ${#masters_all[@]} control-plane nodes"
+info "Pointing local kubeconfig at the VIP ($vip)"
+sed -i "s/$master1/$vip/g" "$HOME/.kube/config"
 
-# Step 3: Download kube-vip
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/kube-vip
-cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' > $HOME/kube-vip.yaml
+# ── Step 6/9 · Fetch the cluster join token ────────────────────────────
+step "Step 6/9 · Fetch the cluster join token"
+node_token="$(k3sup node-token --ip "$master1" --user "$user" --ssh-key "$ssh_key")" \
+  || die "Failed to fetch node token from $master1"
+[[ -n "$node_token" ]] || die "Empty node token from $master1"
+ok "Join token fetched"
 
-# Step 4: Copy kube-vip.yaml to master1
-scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
-
-
-# Step 5: Connect to Master1 and move kube-vip.yaml
-ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
-  sudo mkdir -p /var/lib/rancher/k3s/server/manifests
-  sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
-EOF
-
-# Step 6: Add new master nodes (servers) & workers
-for newnode in "${masters[@]}"; do
+# ── Step 7/9 · Join control-plane and worker nodes ─────────────────────
+step "Step 7/9 · Join control-plane and worker nodes"
+for node in "${masters[@]}"; do
+  info "Joining control-plane node $node"
   k3sup join \
-    --ip $newnode \
-    --user $user \
+    --ip "$node" \
+    --user "$user" \
     --sudo \
-    --k3s-version $k3sVersion \
     --server \
-    --server-ip $master1 \
-    --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
-    --server-user $user
-  echo -e " \033[32;5mMaster node joined successfully!\033[0m"
+    --server-ip "$master1" \
+    --server-user "$user" \
+    --node-token "$node_token" \
+    "${k3s_selector[@]}" \
+    --k3s-extra-args "$(server_extra_args "$node")" \
+    --ssh-key "$ssh_key"
+  ok "Control-plane node $node joined"
 done
-
-# add workers
-for newagent in "${workers[@]}"; do
+for node in "${workers[@]}"; do
+  info "Joining worker node $node"
   k3sup join \
-    --ip $newagent \
-    --user $user \
+    --ip "$node" \
+    --user "$user" \
     --sudo \
-    --k3s-version $k3sVersion \
-    --server-ip $master1 \
-    --ssh-key $HOME/.ssh/$certName \
-    --k3s-extra-args "--node-label \"longhorn=true\" --node-label \"worker=true\""
-  echo -e " \033[32;5mAgent node joined successfully!\033[0m"
+    --server-ip "$master1" \
+    --server-user "$user" \
+    --node-token "$node_token" \
+    "${k3s_selector[@]}" \
+    --k3s-extra-args '--node-label longhorn=true --node-label worker=true' \
+    --ssh-key "$ssh_key"
+  ok "Worker node $node joined"
 done
 
-# Step 7: Install kube-vip as network LoadBalancer - Install the kube-vip Cloud Provider
-kubectl apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
+# ── Step 8/9 · Install MetalLB (service LoadBalancer) ──────────────────
+step "Step 8/9 · Install MetalLB (service LoadBalancer)"
+kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/$METALLB_VERSION/config/manifests/metallb-native.yaml"
+info "Waiting for the MetalLB controller"
+# rollout status waits on the Deployment (created synchronously by apply) and
+# avoids the "no matching resources found" race that `wait --for=condition=ready
+# pod` hits when the controller pod does not exist yet.
+kubectl -n metallb-system rollout status deploy/controller --timeout=120s
+info "Configuring address pool ($lbrange)"
+curl -sfL "$manifest_base/ipAddressPool" -o "$HOME/ipAddressPool.src"
+sed "s|REPLACE_LBRANGE|$lbrange|g" "$HOME/ipAddressPool.src" > "$HOME/ipAddressPool.yaml"
+kubectl apply -f "$HOME/ipAddressPool.yaml"
+curl -sfL "$manifest_base/l2Advertisement.yaml" -o "$HOME/l2Advertisement.yaml"
+kubectl apply -f "$HOME/l2Advertisement.yaml"
+ok "MetalLB configured"
 
-# Step 8: Install Metallb
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml
-# Download ipAddressPool and configure using lbrange above
-curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/ipAddressPool
-cat ipAddressPool | sed 's/$lbrange/'$lbrange'/g' > $HOME/ipAddressPool.yaml
-kubectl apply -f $HOME/ipAddressPool.yaml
-
-# Step 9: Test with Nginx
-kubectl apply -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml -n default
+# ── Step 9/9 · Verify cluster and LoadBalancer ─────────────────────────
+step "Step 9/9 · Verify cluster and LoadBalancer"
+info "Waiting for the cluster to be ready"
+k3sup ready --context "$context" --kubeconfig "$HOME/.kube/config"
+info "Deploying nginx sample"
+kubectl apply -n default -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml
 kubectl expose deployment nginx-1 --port=80 --type=LoadBalancer -n default
-
-echo -e " \033[32;5mWaiting for K3S to sync and LoadBalancer to come online\033[0m"
-
-while [[ $(kubectl get pods -l app=nginx -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do
-   sleep 1
+info "Waiting for the nginx deployment"
+kubectl -n default rollout status deploy/nginx-1 --timeout=120s
+info "Waiting for the LoadBalancer IP"
+lb_ip=""
+for _ in $(seq 1 30); do
+  lb_ip="$(kubectl get svc nginx-1 -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+  [[ -n "$lb_ip" ]] && break
+  sleep 2
 done
 
-# Step 10: Deploy IP Pools and l2Advertisement
-kubectl wait --namespace metallb-system \
-                --for=condition=ready pod \
-                --selector=component=controller \
-                --timeout=120s
-kubectl apply -f ipAddressPool.yaml
-kubectl apply -f https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernetes/K3S-Deploy/l2Advertisement.yaml
-
-kubectl get nodes
-kubectl get svc
-kubectl get pods --all-namespaces -o wide
-
-echo -e " \033[32;5mHappy Kubing! Access Nginx at EXTERNAL-IP above\033[0m"
+kubectl get nodes -o wide || true
+step "Done · cluster ready"
+ready_nodes="$(kubectl get nodes --no-headers 2>/dev/null | awk '$2=="Ready"{c++} END{print c+0}')"
+ok "$ready_nodes nodes Ready · context '$context'"
+ok "API server: https://$vip:6443"
+if [[ -n "$lb_ip" ]]; then
+  ok "nginx LoadBalancer IP: $lb_ip  (curl http://$lb_ip)"
+else
+  warn "nginx LoadBalancer IP not assigned yet — check: kubectl get svc -A"
+fi
+info "Next: kubectl get pods -A"
