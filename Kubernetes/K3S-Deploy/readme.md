@@ -87,13 +87,21 @@ Then update `KVVERSION` in `k3s.sh` to match.
 
 - **Versions:** k3s `v1.35.6+k3s1`, kube-vip `v1.2.1`, MetalLB `v0.16.0`.
 - **kube-vip** now runs on **all** control-plane nodes, and your kubeconfig
-  points at the **VIP** (not master1) — fixes `localhost:8080`/API errors.
+  points at the **VIP** (not master1) — fixes `localhost:8080`/API errors. A
+  readiness check confirms the VIP is answering before the script continues.
 - Removed the redundant kube-vip **cloud-provider**; MetalLB alone handles
   `type: LoadBalancer`.
+- **MetalLB** installs from a single native manifest (which creates its own
+  `metallb-system` namespace) — the old separate namespace apply and its
+  mismatched MetalLB versions are gone.
+- **k3sup:** the join token is fetched once and reused across all nodes, and
+  `k3sup ready` waits for the cluster instead of a hand-rolled poll loop.
 - **Safer SSH:** host keys are added via `ssh-keyscan`; the script no longer
   overwrites `~/.ssh/config`.
 - **Hardening:** `set -euo pipefail`, per-node time sync, `apt` prerequisite
-  install with a clear message on unsupported distros, arch-aware `kubectl`.
-- **Friendlier output:** a pre-flight config summary + confirmation, numbered
-  step headers, and a final summary. (The banner still blinks — for old
-  times' sake.)
+  install with a clear message on unsupported distros, arch-aware `kubectl`,
+  and it is safe to re-run.
+- **Cleaner output:** non-blinking step-by-step logging (only the banner
+  still blinks — for old times' sake), a pre-flight config summary with a
+  `[y/N]` confirmation (`ASSUME_YES=1` to skip), and a final summary listing
+  the API VIP and the assigned LoadBalancer IP.
