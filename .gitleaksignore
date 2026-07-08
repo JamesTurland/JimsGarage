@@ -1,0 +1,41 @@
+# gitleaks baseline — pre-existing intentional dummy credentials kept here
+# instead of an inline `# gitleaks:allow` annotation. A finding is baselined
+# (rather than annotated inline) when its file cannot or should not be edited:
+#   - JSON files have no comment syntax            (e.g. Netbird/management.json)
+#   - multi-line PEM private-key blocks can't carry a reliable inline marker
+#                                                  (Authelia/Authelia/configuration.yml)
+#   - files with pre-existing lint debt: editing them would pull that file into
+#     the changed-files lint scope and fail unrelated yamllint/hygiene checks.
+#
+# New intentional dummies in clean, comment-capable files should use an inline
+# `# gitleaks:allow` instead of being added here. See CONTRIBUTING.md.
+
+Authelia/Authelia/configuration.yml:generic-api-key:19
+Authelia/Authelia/configuration.yml:generic-api-key:226
+Authelia/Authelia/configuration.yml:private-key:369
+Authelia/Authelia/configuration.yml:generic-api-key:681
+Authelia/Authelia/configuration.yml:private-key:790
+Authelia/Authelia/configuration.yml:generic-api-key:872
+Authelia/Authelia/configuration.yml:private-key:962
+Authelia/Authelia/configuration.yml:private-key:1068
+Authelia/Authelia/configuration.yml:private-key:1225
+Authelia/Authelia/configuration.yml:generic-api-key:1267
+Authelia/Authelia/configuration.yml:private-key:1314
+Grafana-Monitoring/Part-2/telegraf.conf:generic-api-key:398
+Home-Assistant/docker-compose.yaml:generic-api-key:43
+Netbird/docker-compose.yml:generic-api-key:15
+Netbird/docker-compose.yml:generic-api-key:16
+Netbird/management.json:generic-api-key:19
+Netbird/management.json:generic-api-key:30
+Netbird/management.json:generic-api-key:35
+Netbird/management.json:generic-api-key:52
+Paperless-ngx/docker-compose.yaml:generic-api-key:83
+Popup-Homelab/docker-compose.yaml:generic-api-key:87
+Pterodactyl/config.yml:generic-api-key:3
+Pterodactyl/config.yml:generic-api-key:4
+Synapse/docker-compose.yaml:generic-api-key:57
+Synapse/homeserver.yaml:generic-api-key:29
+Synapse/mautrix-discord-bridge/docker-compose.yaml:generic-api-key:36
+Terraform/providers.tf:generic-api-key:14
+Vikunja/docker-compose.yaml:generic-api-key:13
+Zitadel/docker-compose.yaml:generic-api-key:10

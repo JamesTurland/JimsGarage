@@ -19,7 +19,7 @@ services:
       - "DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true"
 
       - "DIUN_NOTIF_GOTIFY_ENDPOINT=https://gotify.jimsgarage.co.uk"
-      - "DIUN_NOTIF_GOTIFY_TOKEN=AYgfdfQaRk3Pb1x" # get your token from Gotify UI
+      - "DIUN_NOTIF_GOTIFY_TOKEN=AYgfdfQaRk3Pb1x" # get your token from Gotify UI  # gitleaks:allow
       - "DIUN_NOTIF_GOTIFY_PRIORITY=1"
       - "DIUN_NOTIF_GOTIFY_TIMEOUT=10s"
 
