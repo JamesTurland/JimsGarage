@@ -105,11 +105,20 @@ else
 fi
 
 # Control-plane k3s args: disable bundled traefik + servicelb (we use
-# MetalLB), pin the flannel interface + node IP, taint as control-plane.
+# MetalLB), add the VIP to the API serving cert SAN, pin the flannel interface
+# + node IP, taint as control-plane. Applied to EVERY server so master2/3
+# declare the VIP SAN too (not just master1).
 # Explicit --disable is kept (not k3sup --no-extras) for tutorial clarity.
 server_extra_args() {  # $1 = node ip
-  printf '%s' "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$1 --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule"
+  printf '%s' "--disable traefik --disable servicelb --tls-san=$vip --flannel-iface=$interface --node-ip=$1 --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule"
 }
+
+# k3sup prints a promo tip ("Create clusters on Mac…/slicervm.com") on every
+# install/join. Filter it out. Use sed, not grep -v: sed always exits 0, so
+# pipefail still surfaces a real k3sup failure (grep would exit 1 on no match
+# and spuriously abort under set -e). Only wraps the noisy display commands —
+# never node-token (whose stdout is captured for the token).
+k3sup_quiet() { command k3sup "$@" 2>&1 | sed '/Create clusters on Mac/d'; }
 
 # ── Pre-flight: show config, confirm before touching any node ──────────
 step "Pre-flight · review configuration"
@@ -221,11 +230,10 @@ done
 # ── Step 4/9 · Bootstrap first control-plane node ──────────────────────
 step "Step 4/9 · Bootstrap first control-plane node ($master1)"
 mkdir -p "$HOME/.kube"
-k3sup install \
+k3sup_quiet install \
   --ip "$master1" \
   --user "$user" \
   --sudo \
-  --tls-san "$vip" \
   --cluster \
   "${k3s_selector[@]}" \
   --k3s-extra-args "$(server_extra_args "$master1")" \
@@ -290,13 +298,12 @@ ok "Join token fetched"
 step "Step 7/9 · Join control-plane and worker nodes"
 for node in "${masters[@]}"; do
   info "Joining control-plane node $node"
-  k3sup join \
+  k3sup_quiet join \
     --ip "$node" \
     --user "$user" \
     --sudo \
     --server \
-    --server-ip "$master1" \
-    --server-user "$user" \
+    --server-ip "$vip" \
     --node-token "$node_token" \
     "${k3s_selector[@]}" \
     --k3s-extra-args "$(server_extra_args "$node")" \
@@ -305,15 +312,14 @@ for node in "${masters[@]}"; do
 done
 for node in "${workers[@]}"; do
   info "Joining worker node $node"
-  k3sup join \
+  k3sup_quiet join \
     --ip "$node" \
     --user "$user" \
     --sudo \
-    --server-ip "$master1" \
-    --server-user "$user" \
+    --server-ip "$vip" \
     --node-token "$node_token" \
     "${k3s_selector[@]}" \
-    --k3s-extra-args '--node-label longhorn=true --node-label worker=true' \
+    --k3s-extra-args "--flannel-iface=$interface --node-ip=$node --node-label longhorn=true --node-label worker=true" \
     --ssh-key "$ssh_key"
   ok "Worker node $node joined"
 done
@@ -340,7 +346,9 @@ info "Waiting for the cluster to be ready"
 k3sup ready --context "$context" --kubeconfig "$HOME/.kube/config"
 info "Deploying nginx sample"
 kubectl apply -n default -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml
-kubectl expose deployment nginx-1 --port=80 --type=LoadBalancer -n default
+# `|| true` — expose is imperative and errors with AlreadyExists on a re-run,
+# which would abort the script under set -e.
+kubectl expose deployment nginx-1 --port=80 --type=LoadBalancer -n default 2>/dev/null || true
 info "Waiting for the nginx deployment"
 kubectl -n default rollout status deploy/nginx-1 --timeout=120s
 info "Waiting for the LoadBalancer IP"
