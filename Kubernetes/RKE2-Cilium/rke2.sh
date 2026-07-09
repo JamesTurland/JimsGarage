@@ -21,6 +21,7 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
+# shellcheck disable=SC2034  # kept as a documented config knob; not referenced in this script
 KVVERSION="v0.6.3"
 
 # Set the IP addresses of the admin, masters, and workers nodes
@@ -35,25 +36,23 @@ worker2=192.168.3.25
 user=ubuntu
 
 # Interface used on remotes
+# shellcheck disable=SC2034  # kept as a documented config knob; not referenced in this script
 interface=eth0
 
 # Set the virtual IP address (VIP)
 vip=192.168.3.50
 
 # Array of all master nodes
-allmasters=($master1 $master2 $master3)
+allmasters=("$master1" "$master2" "$master3")
 
 # Array of master nodes
-masters=($master2 $master3)
+masters=("$master2" "$master3")
 
 # Array of worker nodes
-workers=($worker1 $worker2)
+workers=("$worker1" "$worker2")
 
 # Array of all
-all=($master1 $master2 $master3 $worker1 $worker2)
-
-# Array of all minus master1
-allnomaster1=($master2 $master3 $worker1 $worker2)
+all=("$master1" "$master2" "$master3" "$worker1" "$worker2")
 
 #Loadbalancer IP range - this is set to /27 in rke2-cilium-config.yaml
 lbrange=192.168.3.64
@@ -70,7 +69,7 @@ sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
 cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
+chmod 600 /home/$user/.ssh/$certName
 chmod 644 /home/$user/.ssh/$certName.pub
 
 # Install Kubectl if not already present
@@ -101,7 +100,7 @@ mkdir ~/.kube
 # create the rke2 config file
 sudo mkdir -p /etc/rancher/rke2
 touch config.yaml
-echo "tls-san:" >> config.yaml 
+echo "tls-san:" >> config.yaml
 echo "  - $master1" >> config.yaml
 echo "  - $master2" >> config.yaml
 echo "  - $master3" >> config.yaml
@@ -115,7 +114,9 @@ echo "disable-kube-proxy: \"true\"" >> config.yaml
 sudo cp ~/config.yaml /etc/rancher/rke2/config.yaml
 
 # update path with rke2-binaries
-echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >> ~/.bashrc ; echo 'alias k=kubectl' >> ~/.bashrc ; source ~/.bashrc ;
+echo 'export KUBECONFIG=/etc/rancher/rke2/rke2.yaml' >> ~/.bashrc ; echo 'export PATH=${PATH}:/var/lib/rancher/rke2/bin' >> ~/.bashrc ; echo 'alias k=kubectl' >> ~/.bashrc
+# shellcheck disable=SC1090  # sourcing the user's ~/.bashrc, which shellcheck can't follow
+source ~/.bashrc
 
 # Step 2: Copy kube-vip.yaml and certs to all masters
 for newnode in "${allmasters[@]}"; do
@@ -125,6 +126,7 @@ for newnode in "${allmasters[@]}"; do
 done
 
 # Step 3: Connect to Master1 and move kube-vip.yaml and config.yaml. Then install RKE2, copy token back to admin machine. We then use the token to bootstrap additional masternodes
+# shellcheck disable=SC2087  # heredoc vars are intentionally expanded client-side before being sent to the remote root shell
 ssh -tt $user@$master1 -i ~/.ssh/$certName sudo su <<EOF
 mkdir -p /var/lib/rancher/rke2/server/manifests
 mkdir -p /etc/rancher/rke2
@@ -149,13 +151,14 @@ echo -e " \033[32;5mMaster1 Completed\033[0m"
 # Step 4: Set variable to the token we just extracted, set kube config location
 token=`cat token`
 sudo cat ~/.kube/rke2.yaml | sed 's/127.0.0.1/'$master1'/g' > $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
+sudo chown "$(id -u):$(id -g)" $HOME/.kube/config
 export KUBECONFIG=${HOME}/.kube/config
 sudo cp ~/.kube/config /etc/rancher/rke2/rke2.yaml
 kubectl get nodes
 
 # Step 6: Add other Masternodes, note we import the token we extracted from step 3
 for newnode in "${masters[@]}"; do
+  # shellcheck disable=SC2087  # heredoc vars are intentionally expanded client-side before being sent to the remote root shell
   ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   mkdir -p /var/lib/rancher/rke2/server/manifests
@@ -189,6 +192,7 @@ kubectl get nodes
 
 # Step 7: Add Workers
 for newnode in "${workers[@]}"; do
+  # shellcheck disable=SC2087  # heredoc vars are intentionally expanded client-side before being sent to the remote root shell
   ssh -tt $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
   mkdir -p /etc/rancher/rke2
   touch /etc/rancher/rke2/config.yaml
@@ -240,7 +244,7 @@ kubectl get svc -n cattle-system
 kubectl expose deployment rancher --name=rancher-lb --port=443 --type=LoadBalancer -n cattle-system
 while [[ -z $(kubectl get svc rancher-lb -n cattle-system -o 'jsonpath={.status.loadBalancer.ingress[0].ip}' 2>/dev/null) ]]; do
    sleep 5
-   echo -e " \033[32;5mWaiting for LoadBalancer to come online\033[0m" 
+   echo -e " \033[32;5mWaiting for LoadBalancer to come online\033[0m"
 done
 kubectl get svc -n cattle-system
 
