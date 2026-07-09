@@ -256,7 +256,7 @@ kubectl -n cattle-system get deploy rancher
 # Add Rancher LoadBalancer
 kubectl get svc -n cattle-system
 kubectl expose deployment rancher --name=rancher-lb --port=443 --type=LoadBalancer -n cattle-system
-while [[ $(kubectl get svc -n cattle-system 'jsonpath={..status.conditions[?(@.type=="Pending")].status}') = "True" ]]; do
+while [[ -z $(kubectl get svc rancher-lb -n cattle-system -o 'jsonpath={.status.loadBalancer.ingress[0].ip}' 2>/dev/null) ]]; do
    sleep 5
    echo -e " \033[32;5mWaiting for LoadBalancer to come online\033[0m" 
 done
