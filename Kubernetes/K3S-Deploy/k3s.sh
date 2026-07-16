@@ -120,6 +120,21 @@ server_extra_args() {  # $1 = node ip
 # never node-token (whose stdout is captured for the token).
 k3sup_quiet() { command k3sup "$@" 2>&1 | sed '/Create clusters on Mac/d'; }
 
+# Apply a manifest, retrying on transient failure. MetalLB installs a
+# validating webhook served by its controller; there is a brief window where
+# the controller Deployment reports Available but the webhook endpoints/TLS
+# are not serving yet, so the first apply can fail with "no endpoints
+# available for service metallb-webhook-service". Retry to ride that out.
+kubectl_apply_retry() {  # $1 = manifest path or URL
+  local i
+  for i in $(seq 1 6); do
+    kubectl apply -f "$1" && return 0
+    warn "kubectl apply $1 failed (attempt $i/6) — retrying in 5s"
+    sleep 5
+  done
+  die "kubectl apply $1 failed after 6 attempts"
+}
+
 # ── Pre-flight: show config, confirm before touching any node ──────────
 step "Pre-flight · review configuration"
 printf '  %-16s %s\n' \
@@ -153,7 +168,7 @@ if ! command -v k3sup &>/dev/null; then
   done
   [[ -n "$k3sup_bin" ]] || die "k3sup installer produced no binary"
   sudo install "$k3sup_bin" /usr/local/bin/k3sup
-  rm -f k3sup k3sup-*
+  rm -f "$k3sup_bin"
 else
   ok "k3sup present"
 fi
@@ -269,8 +284,10 @@ REMOTE
 done
 ok "kube-vip deployed to ${#masters_all[@]} control-plane nodes"
 info "Pointing local kubeconfig at the VIP ($vip)"
-# Rewrite only the server URL (anchored) to avoid the regex dots in the IP
-# matching anything else in the kubeconfig (e.g. base64 cert data).
+# Rewrite the server URL from master1 to the VIP. The dots in the IP are
+# unescaped regex metacharacters, but a false match would need the literal
+# "https://<master1-ish>:6443" string elsewhere in the kubeconfig, which does
+# not occur (cert data is base64 — no scheme or port), so this is safe here.
 sed -i "s#https://$master1:6443#https://$vip:6443#" "$HOME/.kube/config"
 
 # Confirm the VIP is actually answering before any VIP-routed kubectl below.
@@ -296,6 +313,9 @@ ok "Join token fetched"
 
 # ── Step 7/9 · Join control-plane and worker nodes ─────────────────────
 step "Step 7/9 · Join control-plane and worker nodes"
+# The prefetched --node-token is what keeps these joins from ever SSHing to
+# the server: without it, k3sup would try --server-user (default: root) against
+# --server-ip (the VIP, not an SSH target) and fail confusingly. Keep the token.
 for node in "${masters[@]}"; do
   info "Joining control-plane node $node"
   k3sup_quiet join \
@@ -324,6 +344,18 @@ for node in "${workers[@]}"; do
   ok "Worker node $node joined"
 done
 
+# Assert the full HA control plane is up before continuing. The VIP gate in
+# Step 5 only proved master1 (a single-member etcd); a control-plane join that
+# half-succeeds would otherwise sail through as success on a degraded cluster.
+info "Waiting for all ${#masters_all[@]} control-plane nodes to be Ready"
+kubectl wait --for=condition=Ready node \
+  -l node-role.kubernetes.io/control-plane --timeout=180s || \
+  die "Control-plane nodes did not all become Ready — check etcd/kube-vip on the masters: kubectl get nodes; kubectl -n kube-system logs -l app.kubernetes.io/name=kube-vip-ds"
+cp_ready="$(kubectl get nodes -l node-role.kubernetes.io/control-plane --no-headers 2>/dev/null | awk '$2=="Ready"{c++} END{print c+0}')"
+[[ "$cp_ready" -eq "${#masters_all[@]}" ]] || \
+  die "Expected ${#masters_all[@]} control-plane nodes Ready, found $cp_ready — etcd quorum may be degraded"
+ok "All ${#masters_all[@]} control-plane nodes Ready"
+
 # ── Step 8/9 · Install MetalLB (service LoadBalancer) ──────────────────
 step "Step 8/9 · Install MetalLB (service LoadBalancer)"
 kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/$METALLB_VERSION/config/manifests/metallb-native.yaml"
@@ -335,15 +367,15 @@ kubectl -n metallb-system rollout status deploy/controller --timeout=120s
 info "Configuring address pool ($lbrange)"
 curl -sfL "$manifest_base/ipAddressPool" -o "$HOME/ipAddressPool.src"
 sed "s|REPLACE_LBRANGE|$lbrange|g" "$HOME/ipAddressPool.src" > "$HOME/ipAddressPool.yaml"
-kubectl apply -f "$HOME/ipAddressPool.yaml"
+kubectl_apply_retry "$HOME/ipAddressPool.yaml"
 curl -sfL "$manifest_base/l2Advertisement.yaml" -o "$HOME/l2Advertisement.yaml"
-kubectl apply -f "$HOME/l2Advertisement.yaml"
+kubectl_apply_retry "$HOME/l2Advertisement.yaml"
 ok "MetalLB configured"
 
 # ── Step 9/9 · Verify cluster and LoadBalancer ─────────────────────────
 step "Step 9/9 · Verify cluster and LoadBalancer"
 info "Waiting for the cluster to be ready"
-k3sup ready --context "$context" --kubeconfig "$HOME/.kube/config"
+k3sup_quiet ready --context "$context" --kubeconfig "$HOME/.kube/config"
 info "Deploying nginx sample"
 kubectl apply -n default -f https://raw.githubusercontent.com/inlets/inlets-operator/master/contrib/nginx-sample-deployment.yaml
 # `|| true` — expose is imperative and errors with AlreadyExists on a re-run,
