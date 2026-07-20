@@ -1,6 +1,7 @@
 ---
 - name: Start Portainer
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /home/ubuntu/docker-compose/portainer
     state: present
-    restarted: true
+    recreate: auto
+
