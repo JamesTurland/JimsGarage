@@ -20,6 +20,13 @@
             }
         ]
     },
+    "Relay": {
+        "Addresses": [
+            "rels://netbird.jimsgarage.co.uk:443/relay"
+        ],
+        "CredentialsTTL": "24h0m0s",
+        "Secret": "someverylongrandomsecret"
+    },
     "Signal": {
         "Proto": "https",
         "URI": "netbird.jimsgarage.co.uk:443",
