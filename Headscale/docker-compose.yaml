@@ -18,4 +18,4 @@ services:
     container_name: headscale-ui
     restart: unless-stopped
     ports:
-        - 9999:80
+        - 9999:8080
