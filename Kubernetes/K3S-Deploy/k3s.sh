@@ -21,10 +21,10 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+KVVERSION="v1.0.0"
 
 # K3S Version
-k3sVersion="v1.26.10+k3s2"
+k3sVersion="v1.33.5+k3s1"
 
 # Set the IP addresses of the master and work nodes
 master1=192.168.3.21
