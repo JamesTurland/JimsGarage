@@ -1,0 +1,21 @@
+---
+# Lenient ruleset: this repo has a large body of pre-existing YAML (compose
+# stacks, k8s manifests, Ansible). The goal is to catch real problems on
+# changed files without drowning contributors in stylistic noise.
+extends: default
+
+rules:
+  # Long lines are common and harmless in compose/k8s/Ansible YAML.
+  line-length: disable
+  # Many files intentionally omit the leading '---'.
+  document-start: disable
+  # compose/Ansible use yes/no/on/off as values, not just true/false.
+  truthy:
+    check-keys: false
+  # Indentation styles vary across the repo; only require internal consistency.
+  indentation:
+    spaces: consistent
+    indent-sequences: whatever
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable

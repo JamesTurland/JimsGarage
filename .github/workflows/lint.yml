@@ -1,0 +1,56 @@
+---
+name: Lint
+
+on:
+  pull_request:
+
+# Read-only: this workflow only inspects code and reports status, so it works
+# from fork PRs (which receive a read-only token and no secrets).
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: pre-commit (changed files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run pre-commit on changed files
+        # gitleaks is handled by the dedicated job below (it scans git history,
+        # not a file list), so skip it here to avoid a redundant no-op run.
+        env:
+          SKIP: gitleaks
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python -m pip install --upgrade pre-commit
+          pre-commit run \
+            --from-ref "$BASE_SHA" \
+            --to-ref "$HEAD_SHA" \
+            --show-diff-on-failure
+
+  gitleaks:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan PR commits for secrets
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks git . --redact --no-banner --log-opts="${BASE_SHA}..${HEAD_SHA}"

@@ -1,0 +1,49 @@
+# Gitleaks configuration for JimsGarage.
+#
+# These are homelab tutorial configs: many directories intentionally ship
+# throwaway/dummy credentials so viewers can copy a working example (see
+# issue #127). This config keeps the full default secret-detection ruleset
+# but allowlists the paths and placeholder values that are dummy *by
+# convention*, so the scanner only fires on something that looks like a
+# genuine accidental leak.
+#
+# Tradeoff worth knowing: because `.env` files here are demo placeholders by
+# design, they are allowlisted wholesale — gitleaks will NOT catch a real
+# secret accidentally dropped into a `.env`. The scanner's value in this repo
+# is catching real secrets pasted into scripts, compose files, and manifests.
+
+title = "JimsGarage gitleaks config"
+
+[extend]
+# Inherit all of gitleaks' built-in rules (AWS keys, JWTs, private keys,
+# provider tokens, high-entropy strings, etc.).
+useDefault = true
+
+[[allowlists]]
+description = "Intentional throwaway credentials in example/placeholder files"
+# `paths` is matched against the file path of the candidate finding.
+paths = [
+  # Tracked .env files are demo placeholders by convention in this repo.
+  '''(^|/)\.env$''',
+  '''\.env$''',
+  # Files that are explicitly named as examples/samples/templates.
+  '''(^|/)[^/]*example[^/]*''',
+  '''(^|/)[^/]*sample[^/]*''',
+  '''\.(example|sample|dist|template|tmpl)$''',
+]
+
+[[allowlists]]
+description = "Common placeholder secret values"
+# `regexes` is matched against the detected secret value itself, so a
+# realistic-looking value anywhere still gets flagged — only obvious
+# placeholders are exempted.
+regexTarget = "match"
+regexes = [
+  '''(?i)changeme''',
+  '''(?i)your[-_].*(key|token|secret|password)''',
+  '''(?i)example[-_.]?(key|token|secret|password|value)?''',
+  '''(?i)supersecret''',
+  '''(?i)redacted''',
+  '''(?i)<[^>]+>''',          # angle-bracket placeholders like <your-token>
+  '''(?i)^(test|dummy|placeholder|password|secret)$''',
+]
