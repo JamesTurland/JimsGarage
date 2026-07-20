@@ -21,11 +21,18 @@ resource "proxmox_vm_qemu" "cloudinit-k3s-master" {
     memory = 4096
     name = "k3s-master-0${count.index + 1}"
 
-    cloudinit_cdrom_storage = "nvme"
+    # cloudinit_cdrom_storage = "nvme" depricated on RC oct-2024
     scsihw   = "virtio-scsi-single" 
     bootdisk = "scsi0"
 
     disks {
+        ide {
+            ide3 {
+                cloudinit {
+                    storage = "nvme"
+                }
+             }
+        }            
         scsi {
             scsi0 {
                 disk {
@@ -69,11 +76,18 @@ resource "proxmox_vm_qemu" "cloudinit-k3s-worker" {
     memory = 4096
     name = "k3s-worker-0${count.index + 1}"
 
-    cloudinit_cdrom_storage = "nvme"
+    # cloudinit_cdrom_storage = "nvme" depricated on RC oct-2024
     scsihw   = "virtio-scsi-single" 
     bootdisk = "scsi0"
 
     disks {
+        ide {
+            ide3 {
+                cloudinit {
+                    storage = "nvme"
+                }
+             }
+        }
         scsi {
             scsi0 {
                 disk {
