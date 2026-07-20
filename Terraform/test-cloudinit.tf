@@ -31,6 +31,7 @@ resource "proxmox_vm_qemu" "cloudinit-k3s-master" {
                 disk {
                   storage = "nvme"
                   size = 12
+                  emulatessd  = true
                 }
             }
         }
@@ -79,6 +80,7 @@ resource "proxmox_vm_qemu" "cloudinit-k3s-worker" {
                 disk {
                   storage = "nvme"
                   size = 12
+                  emulatessd  = true
                 }
             }
         }
