@@ -9,7 +9,7 @@ echo -e " \033[33;5m                                               |___/       \
 
 echo -e " \033[36;5m         _  _________   ___         _        _ _           \033[0m"
 echo -e " \033[36;5m        | |/ |__ / __| |_ _|_ _  __| |_ __ _| | |          \033[0m"
-echo -e " \033[36;5m        | ' < |_ \__ \  | || ' \(_-|  _/ _\` | | |          \033[0m"
+echo -e " \033[36;5m        | ' < |_ \__ \  | || ' \(_-|  _/ _\` | | |         \033[0m"
 echo -e " \033[36;5m        |_|\_|___|___/ |___|_||_/__/\__\__,_|_|_|          \033[0m"
 echo -e " \033[36;5m                                                           \033[0m"
 echo -e " \033[32;5m             https://youtube.com/@jims-garage              \033[0m"
@@ -21,10 +21,10 @@ echo -e " \033[32;5m                                                           \
 #############################################
 
 # Version of Kube-VIP to deploy
-KVVERSION="v0.6.3"
+KVVERSION="v0.8.9"
 
 # K3S Version
-k3sVersion="v1.26.10+k3s2"
+k3sVersion="v1.31.7+k3s1"
 
 # Set the IP addresses of the master and work nodes
 master1=192.168.3.21
@@ -34,7 +34,7 @@ worker1=192.168.3.24
 worker2=192.168.3.25
 
 # User of remote machines
-user=ubuntu
+remoteUser=ubuntu
 
 # Interface used on remotes
 interface=eth0
@@ -71,9 +71,9 @@ sudo timedatectl set-ntp off
 sudo timedatectl set-ntp on
 
 # Move SSH certs to ~/.ssh and change permissions
-cp /home/$user/{$certName,$certName.pub} /home/$user/.ssh
-chmod 600 /home/$user/.ssh/$certName 
-chmod 644 /home/$user/.ssh/$certName.pub
+cp /home/$USER/{$certName,$certName.pub} /home/$USER/.ssh
+chmod 600 /home/$USER/.ssh/$certName 
+chmod 644 /home/$USER/.ssh/$certName.pub
 
 # Install k3sup to local machine if not already present
 if ! command -v k3sup version &> /dev/null
@@ -123,12 +123,12 @@ fi
 
 #add ssh keys for all nodes
 for node in "${all[@]}"; do
-  ssh-copy-id $user@$node
+  ssh-copy-id $remoteUser@$node
 done
 
 # Install policycoreutils for each node
 for newnode in "${all[@]}"; do
-  ssh $user@$newnode -i ~/.ssh/$certName sudo su <<EOF
+  ssh $remoteUser@$newnode -i ~/.ssh/$certName sudo su <<EOF
   NEEDRESTART_MODE=a apt-get install policycoreutils -y
   exit
 EOF
@@ -139,7 +139,7 @@ done
 mkdir ~/.kube
 k3sup install \
   --ip $master1 \
-  --user $user \
+  --user $remoteUser \
   --tls-san $vip \
   --cluster \
   --k3s-version $k3sVersion \
@@ -159,11 +159,11 @@ curl -sO https://raw.githubusercontent.com/JamesTurland/JimsGarage/main/Kubernet
 cat kube-vip | sed 's/$interface/'$interface'/g; s/$vip/'$vip'/g' > $HOME/kube-vip.yaml
 
 # Step 4: Copy kube-vip.yaml to master1
-scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $user@$master1:~/kube-vip.yaml
+scp -i ~/.ssh/$certName $HOME/kube-vip.yaml $remoteUser@$master1:~/kube-vip.yaml
 
 
 # Step 5: Connect to Master1 and move kube-vip.yaml
-ssh $user@$master1 -i ~/.ssh/$certName <<- EOF
+ssh $remoteUser@$master1 -i ~/.ssh/$certName <<- EOF
   sudo mkdir -p /var/lib/rancher/k3s/server/manifests
   sudo mv kube-vip.yaml /var/lib/rancher/k3s/server/manifests/kube-vip.yaml
 EOF
@@ -172,14 +172,14 @@ EOF
 for newnode in "${masters[@]}"; do
   k3sup join \
     --ip $newnode \
-    --user $user \
+    --user $remoteUser \
     --sudo \
     --k3s-version $k3sVersion \
     --server \
     --server-ip $master1 \
     --ssh-key $HOME/.ssh/$certName \
     --k3s-extra-args "--disable traefik --disable servicelb --flannel-iface=$interface --node-ip=$newnode --node-taint node-role.kubernetes.io/master=true:NoSchedule" \
-    --server-user $user
+    --server-user $remoteUser
   echo -e " \033[32;5mMaster node joined successfully!\033[0m"
 done
 
@@ -187,7 +187,7 @@ done
 for newagent in "${workers[@]}"; do
   k3sup join \
     --ip $newagent \
-    --user $user \
+    --user $remoteUser \
     --sudo \
     --k3s-version $k3sVersion \
     --server-ip $master1 \
