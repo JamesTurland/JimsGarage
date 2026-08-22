@@ -5,4 +5,4 @@ metadata:
   namespace: metallb-system
 spec:
   addresses:
-  - $lbrange
+  - REPLACE_LBRANGE
