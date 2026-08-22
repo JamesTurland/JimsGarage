@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-tunnel
+  namespace: cloudflare-tunnel
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cloudflared-tunnel
+  template:
+    metadata:
+      labels:
+        app: cloudflared-tunnel
+    spec:
+      nodeSelector:
+        worker: "true"
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          command:
+            [
+              "cloudflared",
+              "tunnel",
+              "--no-autoupdate",
+              "run",
+              "--token",
+              "<ADD YOUR TOKEN HERE>",
+            ]
