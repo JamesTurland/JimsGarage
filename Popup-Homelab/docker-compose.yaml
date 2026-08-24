@@ -142,7 +142,7 @@ services:
       FTLCONF_dns_upstreams: '172.70.9.2#5053'
     # Volumes store your data between container upgrades
     volumes:
-      # - './custom.list:/etc/pihole/hosts/custom.list' # remember to add your domains to this
+      - './custom.list:/etc/pihole/custom.list' # remember to add your domains to this
       - '${WORKING_DIR}/pihole/:/etc/pihole/'
       - '${WORKING_DIR}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'
     # Recommended but not required (DHCP needs NET_ADMIN)
