@@ -47,7 +47,7 @@
     daemon_reload: true
   when: inventory_hostname in groups['servers'][0]
 
-# wait for node token to be availale so that we can copy it, we need this to join other nodes
+# wait for node token to be available so that we can copy it, we need this to join other nodes
 - name: Wait for node-token
   ansible.builtin.wait_for:
     path: /var/lib/rancher/rke2/server/node-token
@@ -126,9 +126,9 @@
   when: inventory_hostname == groups['servers'][0]
 
 # change IP from local to server 1 IP
-- name: Replace IP address with server1
+- name: Replace IP address with first server
   ansible.builtin.replace:
     path: /home/{{ ansible_user }}/.kube/config
     regexp: '127.0.0.1'
-    replace: "{{ hostvars['server1']['ansible_host'] }}"
+    replace: "{{ hostvars[groups['servers'][0]]['ansible_host'] }}"
   when: inventory_hostname == groups['servers'][0]
