@@ -1,0 +1,61 @@
+networks:
+  dbnet:
+  redisnet:
+
+services:
+  db:
+    image: mariadb:10.6
+    container_name: mariadb
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - <path-to-data-dir|docker-volume>:/var/lib/mysql
+    expose:
+      - 3306
+    networks:
+      - dbnet
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?err}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?err}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:?err}
+      - MYSQL_USER=${MYSQL_USER:?err}
+  
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    networks:
+      - redisnet
+    expose:
+      - 6379
+
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: nextcloud
+    restart: always
+    ports:
+      - 8080:80
+    links:
+      - db
+      - redis
+    depends_on:
+      - db
+      - redis
+    networks:
+      - redisnet
+      - dbnet
+    volumes:
+      - <path-to-data-dir|docker-volume>:/var/www/html
+      - <path-to-data-dir|docker-volume>:${NEXTCLOUD_DATA_DIR:?err}:rw,exec
+    environment:
+      - REDIS_HOST=redis
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?err}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:?err}
+      - MYSQL_USER=${MYSQL_USER:?err}
+      - MYSQL_HOST=db
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:?err}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:?err}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:?err}
+      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:?err}
