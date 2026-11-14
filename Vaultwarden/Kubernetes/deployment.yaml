@@ -21,13 +21,47 @@ spec:
       nodeSelector:
         worker: "true"
       containers:
-      - image: vaultwarden/server:latest
-        imagePullPolicy: Always
+      # Pin to a specific release instead of :latest so a pod restart can't
+      # silently change versions. Set this to whichever release you run.
+      - image: vaultwarden/server:1.32.7
+        imagePullPolicy: IfNotPresent
         name: vaultwarden
         ports:
         - containerPort: 80
           name: web
           protocol: TCP
+        # Limits so a leak or spike can't starve the node.
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+            ephemeral-storage: "128Mi"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+            ephemeral-storage: "512Mi"
+        # Liveness is a cheap TCP check; readiness hits /alive, which Vaultwarden
+        # serves unauthenticated, so traffic waits until the app is actually up.
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /alive
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        # Defense-in-depth. Vaultwarden binds :80, so ALL caps are dropped and
+        # only NET_BIND_SERVICE is added back.
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+            add: ["NET_BIND_SERVICE"]
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - mountPath: /data/
           name: vaultwarden
