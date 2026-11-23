@@ -62,6 +62,32 @@ services:
     - traefik.http.services.signal.loadbalancer.server.scheme=h2c
     - traefik.docker.network=proxy
 
+  # Relay
+  relay:
+    image: netbirdio/relay:latest
+    environment:
+    - NB_LOG_LEVEL=info
+    - NB_LISTEN_ADDRESS=:33080
+    - NB_EXPOSED_ADDRESS=rels://netbird.jimsgarage.co.uk:443/relay
+    # todo: change to a secure secret
+    - NB_AUTH_SECRET=someverylongrandomsecret
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "500m"
+        max-file: "2"
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.netbird-relay.entrypoints=https
+      - traefik.http.routers.netbird-relay.rule=Host(`netbird.jimsgarage.co.uk`) && PathPrefix(`/relay`)
+      - traefik.http.routers.netbird-relay.tls=true
+      - traefik.http.routers.netbird-relay.service=relay@docker
+      - traefik.http.services.relay.loadbalancer.server.port=33080
+      - traefik.docker.network=proxy
+
   # Management
   management:
     image: netbirdio/management:latest
