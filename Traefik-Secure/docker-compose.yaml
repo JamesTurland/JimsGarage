@@ -1,6 +1,37 @@
 version: '3'
 
 services:
+# https://github.com/Tecnativa/docker-socket-proxy
+  socket-proxy-traefik:
+    networks:
+      socket-proxy-traefik:
+    restart: always
+    image: tecnativa/docker-socket-proxy
+    container_name: socket-proxy-traefik
+    ports:
+      - 127.0.0.1:2375:2375
+    environment:
+      INFO: 1
+      CONTAINERS: 1
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      GRPC: 0
+      IMAGES: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   traefik:
     image: traefik:latest
     container_name: traefik
@@ -9,6 +40,7 @@ services:
       - no-new-privileges:true
     networks:
        proxy:
+       socket-proxy-traefik:
     ports:
       - 80:80
       - 81:81 # external http
@@ -21,7 +53,7 @@ services:
       # be sure to use the correct one depending on if you are using a token or key
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - /var/run/docker.sock:/var/run/docker.sock:ro  # use the socket-proxy
       - /home/ubuntu/docker/traefik/traefik.yml:/traefik.yml:ro
       - /home/ubuntu/docker/traefik/acme.json:/acme.json
       - /home/ubuntu/docker/traefik/config.yml:/config.yml:ro
